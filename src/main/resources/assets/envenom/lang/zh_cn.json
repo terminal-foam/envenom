@@ -1,0 +1,11 @@
+{
+    "slot.envenom.blade": "剑刃",
+    "slot.envenom.hilt": "剑柄",
+    "slot.envenom.armor": "盔甲",
+    "tooltip.envenom.coating": "\u2697 %s %s \u00a77[\u00a7f%s\u00a77] \u00a77x%s",
+    "enchantment.envenom.sticky": "粘滞",
+    "enchantment.envenom.amplification": "药水增幅",
+    "enchantment.envenom.schrodingers_blessing": "薛定谔的祝福",
+    "enchantment.envenom.stacking": "叠层",
+    "enchantment.envenom.injection": "注射"
+}

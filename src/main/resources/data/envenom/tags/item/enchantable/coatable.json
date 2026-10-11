@@ -1,0 +1,9 @@
+{
+    "values": [
+        "#minecraft:enchantable/sharp_weapon",
+        "#minecraft:enchantable/mining",
+        "#minecraft:enchantable/armor",
+        "minecraft:trident",
+        "minecraft:elytra"
+    ]
+}

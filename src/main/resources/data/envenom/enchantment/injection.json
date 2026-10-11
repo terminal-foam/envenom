@@ -1,0 +1,20 @@
+{
+    "description": {
+        "translate": "enchantment.envenom.injection",
+        "fallback": "Injection"
+    },
+    "supported_items": "#minecraft:enchantable/sharp_weapon",
+    "primary_items": "#minecraft:enchantable/sharp_weapon",
+    "weight": 5,
+    "max_level": 1,
+    "min_cost": {
+        "base": 15,
+        "per_level_above_first": 0
+    },
+    "max_cost": {
+        "base": 30,
+        "per_level_above_first": 0
+    },
+    "anvil_cost": 2,
+    "slots": ["mainhand"]
+}

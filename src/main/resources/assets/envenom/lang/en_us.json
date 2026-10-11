@@ -1,0 +1,11 @@
+{
+    "slot.envenom.blade": "Blade",
+    "slot.envenom.hilt": "Hilt",
+    "slot.envenom.armor": "Armor",
+    "tooltip.envenom.coating": "\u2697 %s %s \u00a77[\u00a7f%s\u00a77] \u00a77x%s",
+    "enchantment.envenom.sticky": "Sticky",
+    "enchantment.envenom.amplification": "Amplification",
+    "enchantment.envenom.schrodingers_blessing": "Schrödinger's Blessing",
+    "enchantment.envenom.stacking": "Stacking",
+    "enchantment.envenom.injection": "Injection"
+}

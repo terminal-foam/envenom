@@ -1,0 +1,43 @@
+# ── Gradle ──
+.gradle/
+build/
+.pcache/
+!gradle/wrapper/gradle-wrapper.jar
+
+# ── 开发记录（不入库）──
+# 重构方案书、审计结论、验证证据等属于开发过程记录，不随源码发布。
+# 若要查看，从 E:\dsh\envenom-fullhistory.bundle 恢复本地完整历史。
+docs/
+
+# ── IDE ──
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+
+# ── 运行与调试 ──
+run/
+runs/
+logs/
+crash-reports/
+*.log
+
+# ── 系统 ──
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ── 本地工具产物（不属于模组）──
+_verify/
+*.bak
+*.bak-*
+
+# ── 例外：发布用的成品 jar（build/ 被忽略，这里显式放行）──
+# ⚠️ 空目录会被 git 忽略，所以下面的收尾 ** 不要删。
+!release/
+!release/**
