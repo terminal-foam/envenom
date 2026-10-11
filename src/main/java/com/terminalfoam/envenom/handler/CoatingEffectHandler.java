@@ -28,6 +28,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.entity.PartEntity;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent.Post;
 import net.neoforged.neoforge.event.tick.ServerTickEvent.Pre;
@@ -250,9 +251,33 @@ public class CoatingEffectHandler {
          //    那条路径已由 F-b 的 isCanceled 检查堵住；其余早退路径见方案书 §10.6 F-c（决定不修）。
          if (!(player.getAttackStrengthScale(0.5F) < 1.0F)) {
             List<Coating> coatings = (List<Coating>)weapon.getOrDefault(EnvenomDataComponents.COATINGS, List.of());
+            // ── 目标判定：多部件实体要还原成它的主体 ──
+            //
+            // 多部件生物（原版末影龙、暮色森林九头蛇/娜迦、Cataclysm Boss、冰蜘蛛…）的
+            // 【本体】通常 isPickable() == false，玩家的射线命中的永远是【部件】。
+            // 而部件不是 LivingEntity（PartEntity extends Entity），所以下面那道
+            // `instanceof LivingEntity` 会直接把整段涂层逻辑跳过 ——
+            // 表现为"涂了药水完全没反应"，且不消耗次数、不给任何提示。
+            //
+            // 但语义上玩家打的是【那个生物】，所以把部件还原成主体是目标判定的固有职责。
+            //
+            // 两个分支天然互斥：EnderDragonPart extends Entity（不是 PartEntity）。
+            // 保留末影龙分支不动 —— 它是已实测有效的代码，删掉收益为零、风险非零。
+            //
+            // ⚠️ 解包之后【必须保留】外层那道 instanceof LivingEntity：
+            //    有的部件的父实体也不是生物。实例：Iron 法术书的 ShieldPart，
+            //    其父 AbstractShieldEntity extends Entity（法术护盾，非生物）
+            //    ⇒ 解包后仍不是 LivingEntity ⇒ 原样跳过，行为不比现在差。
+            //
+            // ⚠️ getParent() 可能返回 null（暮色森林自己也在 HydraPart.hurt 里判了空）。
             Entity target = event.getTarget();
             if (target instanceof EnderDragonPart dragonPart) {
                target = dragonPart.parentMob;
+            } else if (target instanceof PartEntity<?> multiPart) {
+               Entity parent = multiPart.getParent();
+               if (parent != null) {
+                  target = parent;
+               }
             }
 
             if (target instanceof LivingEntity livingTarget) {
