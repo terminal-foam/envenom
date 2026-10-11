@@ -75,6 +75,13 @@ public class CoatingEffectHandler {
       return now - last >= interval;
    }
 
+   /**
+    * 「药水增幅」附魔：按等级给一个随机的等级加成。
+    *
+    * <p>{@code roll = rand(0..4)}；{@code roll < level} 时给 {@code roll + 1}，否则给 0。
+    * 也就是等级 N 时加成均匀分布在 {@code +1 .. +min(N,5)}，概率 {@code min(N,5)/5}。
+    * 等级超过 5 时自然封顶（{@code roll} 的上界就是 4），无需额外处理。
+    */
    private static int calcAmpBonus(int level, RandomSource random) {
       if (level <= 0) {
          return 0;
