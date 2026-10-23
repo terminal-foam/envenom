@@ -46,6 +46,13 @@ public class CoatingEffectHandler {
    }
 
    private static Holder<MobEffect> randomEffect(RandomSource random) {
+      // 防御：列表为空时 random.nextInt(0) 会抛 IllegalArgumentException —— 直接崩游戏。
+      // 正常时序下静态块在【首次事件派发】时才跑（EventBus.register(Class) 只做
+      // getDeclaredMethods()，不实例化、不触发类初始化），那时所有模组早已注册完、
+      // 注册表也已冻结，池子不会是空的。但"会不会崩"不该依赖这个时序假设。
+      if (ALL_MOB_EFFECTS.isEmpty()) {
+         return MobEffects.POISON;
+      }
       return ALL_MOB_EFFECTS.get(random.nextInt(ALL_MOB_EFFECTS.size()));
    }
 

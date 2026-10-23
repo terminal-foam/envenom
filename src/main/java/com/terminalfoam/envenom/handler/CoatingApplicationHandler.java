@@ -54,8 +54,10 @@ public class CoatingApplicationHandler {
                 removeOneCoating(cleanTarget);
             }
             // 消耗清洗物品（牛奶桶不消耗）
+            // ⚠️ 不能整手替换成一个玻璃瓶：蜂蜜瓶在原版是 stacksTo(16) 的，
+            //    整栈替换会把同栈里剩下的最多 15 瓶一并销毁。见 consumeOneAndReturnBottle。
             if (!cleaner.is(Items.MILK_BUCKET)) {
-                player.setItemInHand(cleanerHand, new ItemStack(Items.GLASS_BOTTLE));
+                consumeOneAndReturnBottle(player, cleanerHand);
             }
             return;
         }
@@ -202,6 +204,40 @@ public class CoatingApplicationHandler {
     }
 
     // ── 清洗辅助 ──
+
+    /**
+     * 消耗手里 1 个清洗物，并按原版「喝完返瓶」的语义把玻璃瓶还回去。
+     *
+     * <p><b>为什么不能直接</b> {@code setItemInHand(hand, new ItemStack(GLASS_BOTTLE))}：
+     * 蜂蜜瓶在原版是 {@code stacksTo(16)}（{@code Items.HONEY_BOTTLE} 注册时的
+     * {@code Properties.stacksTo(16)}）。整手替换会把同一栈里剩下的 <b>最多 15 瓶</b>一起销毁
+     * —— 玩家的实际损失，而且创造模式也一样。
+     *
+     * <p>水瓶 / 喷溅 / 滞留是 {@code stacksTo(1)}，那条路径上「整手替换」恰好等价于
+     * 「扣 1 + 返瓶」，所以缺陷只暴露在蜂蜜瓶上；但修法对任何可堆叠情形都成立。
+     *
+     * <p><b>为什么只在服务端执行</b>：{@code PlayerInteractEvent.RightClickItem} 在
+     * {@code MultiPlayerGameMode:391}（客户端）与 {@code ServerPlayerGameMode:312}（服务端）
+     * 各发一次。若在客户端也 {@code getInventory().add(...)}，会造出服务端并不存在的幽灵物品
+     * （服务端的槽位同步不一定覆盖那个槽，幽灵会残留）。服务端改完同步下去即可。
+     */
+    private static void consumeOneAndReturnBottle(Player player, InteractionHand hand) {
+        if (player.level().isClientSide()) {
+            return;
+        }
+        ItemStack stack = player.getItemInHand(hand);
+        stack.shrink(1);
+        ItemStack bottle = new ItemStack(Items.GLASS_BOTTLE);
+        if (stack.isEmpty()) {
+            // 水/药水是 stacksTo(1)：扣完就空，直接把空瓶放回这只手
+            player.setItemInHand(hand, bottle);
+            return;
+        }
+        // 栈里还有剩余（蜂蜜瓶）⇒ 空瓶进背包；背包满就掉在脚下
+        if (!player.getInventory().add(bottle)) {
+            player.drop(bottle, false);
+        }
+    }
 
     private static boolean hasCoatings(ItemStack stack) {
         List<Coating> coatings = stack.getOrDefault(EnvenomDataComponents.COATINGS, List.of());
