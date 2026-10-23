@@ -127,11 +127,45 @@ public class CoatingEffectHandler {
    }
 
    private static void applyEffect(LivingEntity target, CoatingEffectHandler.PendingEffect pending, int multiplier) {
-      MobEffect mob = (MobEffect)pending.effect.value();
-      boolean isHeal = pending.effect.is(MobEffects.HEAL);
-      boolean isHarm = pending.effect.is(MobEffects.HARM);
+      applyCoatingEffect(target, pending.effect, pending.amplifier, pending.durationTicks, pending.source, pending.forceInjection, multiplier);
+   }
+
+   /**
+    * 把一张"涂层票"真正施加到目标身上 —— <b>三个槽位的唯一施加原语</b>。
+    *
+    * <p>{@code multiplier} 是这张票要结算几次：滞留涂层为 3，其余为 1。
+    * 三种分支的行为：
+    * <ul>
+    *   <li><b>瞬间治疗 / 瞬间伤害</b>：循环 {@code multiplier} 次，每次 {@code 3 * 2^amp}，
+    *       并且每次先把 {@code invulnerableTime} 清零（否则第 2、3 次会被无敌帧吞掉）。
+    *       方向按"亡灵反之"翻转：治疗打亡灵造成伤害，伤害打亡灵则治疗。</li>
+    *   <li><b>其它瞬间效果</b>（模组自定义的 {@code isInstantenous()}）：先 {@code addEffect} 一次，
+    *       再用 {@code applyEffectTick} 补 {@code multiplier-1} 次。</li>
+    *   <li><b>状态类效果</b>：时长直接乘 {@code multiplier}。</li>
+    * </ul>
+    *
+    * <p><b>为什么抽成一个方法</b>：剑刃（{@code onAttackEntity}）本来就有这套 ×N 语义，
+    * 而剑柄（{@code checkEquipment}）与盔甲（{@code checkArmorSlot}）此前各自只做了一次
+    * {@code addEffect}，让滞留涂层在被动槽位上拿不到 ×3（REPORT.md §3.7）。
+    * 三处共用同一个原语，才不会再次跑偏。
+    *
+    * @param source         效果来源实体；被动槽位（自己给自己）传 {@code null}
+    * @param forceInjection 正门被拒时是否用 {@code forceAddEffect} 强塞（仅剑刃的注射附魔会开）
+    */
+   private static void applyCoatingEffect(
+         LivingEntity target,
+         Holder<MobEffect> effect,
+         int amplifier,
+         int durationTicks,
+         @Nullable Entity source,
+         boolean forceInjection,
+         int multiplier
+   ) {
+      MobEffect mob = (MobEffect)effect.value();
+      boolean isHeal = effect.is(MobEffects.HEAL);
+      boolean isHarm = effect.is(MobEffects.HARM);
       if (mob.isInstantenous() && (isHeal || isHarm)) {
-         float amount = 3.0F * (float)(1 << pending.amplifier);
+         float amount = 3.0F * (float)(1 << amplifier);
          boolean undead = target.isInvertedHealAndHarm();
          boolean dealDamage = isHeal && undead || isHarm && !undead;
 
@@ -144,17 +178,17 @@ public class CoatingEffectHandler {
             }
          }
       } else if (multiplier > 1 && mob.isInstantenous()) {
-         addEffectOrInject(target, new MobEffectInstance(pending.effect, pending.durationTicks, pending.amplifier), pending.source, pending.forceInjection);
+         addEffectOrInject(target, new MobEffectInstance(effect, durationTicks, amplifier), source, forceInjection);
 
          for (int ix = 1; ix < multiplier; ix++) {
-            mob.applyEffectTick(target, pending.amplifier);
+            mob.applyEffectTick(target, amplifier);
          }
       } else if (multiplier > 1) {
          addEffectOrInject(
-            target, new MobEffectInstance(pending.effect, pending.durationTicks * multiplier, pending.amplifier), pending.source, pending.forceInjection
+            target, new MobEffectInstance(effect, durationTicks * multiplier, amplifier), source, forceInjection
          );
       } else {
-         addEffectOrInject(target, new MobEffectInstance(pending.effect, pending.durationTicks, pending.amplifier), pending.source, pending.forceInjection);
+         addEffectOrInject(target, new MobEffectInstance(effect, durationTicks, amplifier), source, forceInjection);
       }
    }
 
@@ -472,20 +506,21 @@ public class CoatingEffectHandler {
                      effect = randomEffect(entity.getRandom());
                   }
 
-                  entity.addEffect(new MobEffectInstance(effect, coating.durationTicks(), amplifier));
+                  // 滞留涂层按 ×N 施加（时长 / 瞬间结算次数），并相应扣 N 次 —— 与剑刃同源。
+                  // （此前这里只做了一次 addEffect、只扣 1 次，滞留涂在剑柄上拿不到 ×3，REPORT.md §3.7）
+                  int multiplier = coating.lingering() ? 3 : 1;
+                  applyCoatingEffect(entity, effect, amplifier, coating.durationTicks(), null, false, multiplier);
                   TriggerCooldown.mark(cooldowns, key, now);
-                  boolean consumed = true;
-                  if (stickyLevel > 0 && entity.getRandom().nextFloat() < (float)stickyLevel / ((float)stickyLevel + 1.0F)) {
-                     consumed = false;
-                  }
 
-                  if (consumed) {
-                     Coating updated = coating.decrementUses();
-                     if (updated != null) {
-                        newCoatings.add(updated);
+                  // 扣次：每次扣独立掷粘滞骰，与剑刃的扣次循环一致。
+                  Coating updated = coating;
+                  for (int u = 0; u < multiplier && updated != null; u++) {
+                     if (stickyLevel <= 0 || !(entity.getRandom().nextFloat() < (float)stickyLevel / ((float)stickyLevel + 1.0F))) {
+                        updated = updated.decrementUses();
                      }
-                  } else {
-                     newCoatings.add(coating);
+                  }
+                  if (updated != null) {
+                     newCoatings.add(updated);
                   }
 
                   changed = true;
@@ -551,9 +586,13 @@ public class CoatingEffectHandler {
             }
 
             if (canTrigger(cooldowns, key, now, interval)) {
-               entity.addEffect(coating.toEffectInstance());
+               // 滞留涂层按 ×N 施加（时长 / 瞬间结算次数），并相应扣 N 次 —— 与剑刃同源。
+               // （此前这里只做了一次 addEffect、只扣 1 次，滞留涂在盔甲上拿不到 ×3，REPORT.md §3.7）
+               // 盔甲槽不读任何附魔，所以这里没有粘滞骰，直接扣 N 次。
+               int multiplier = coating.lingering() ? 3 : 1;
+               applyCoatingEffect(entity, coating.effect(), coating.amplifier(), coating.durationTicks(), null, false, multiplier);
                TriggerCooldown.mark(cooldowns, key, now);
-               Coating updated = coating.decrementUses();
+               Coating updated = coating.decrementUses(multiplier);
                if (updated != null) {
                   newCoatings.add(updated);
                }

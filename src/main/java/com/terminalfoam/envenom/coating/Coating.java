@@ -55,8 +55,17 @@ public record Coating(
         return new Coating(effect, amplifier, durationTicks, uses, slot, lingering);
     }
 
-    public Coating decrementUses() {
-        int newUses = remainingUses - 1;
+    /**
+     * 扣 {@code amount} 次涂层次数。
+     *
+     * @return 扣完后的涂层；{@code null} 表示用尽（剩余 ≤ 0），调用方应丢弃这张涂层
+     */
+    public Coating decrementUses(int amount) {
+        int newUses = remainingUses - amount;
         return newUses <= 0 ? null : new Coating(effect, amplifier, durationTicks, newUses, slot, lingering);
+    }
+
+    public Coating decrementUses() {
+        return decrementUses(1);
     }
 }
