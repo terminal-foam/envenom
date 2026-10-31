@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "envenom_potion_pack",
+  "ingredients": [
+    "envenom:oozing_pack",
+    "minecraft:gunpowder"
+  ],
+  "result": {
+    "count": 1,
+    "id": "envenom:splash_oozing_pack"
+  }
+}

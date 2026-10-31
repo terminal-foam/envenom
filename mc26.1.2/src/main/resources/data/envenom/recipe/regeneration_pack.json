@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "envenom_potion_pack",
+  "ingredients": [
+    "minecraft:paper",
+    "minecraft:nether_wart",
+    "minecraft:ghast_tear"
+  ],
+  "result": {
+    "count": 1,
+    "id": "envenom:regeneration_pack"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "envenom_potion_pack",
+  "ingredients": [
+    "envenom:poison_pack",
+    "minecraft:dragon_breath"
+  ],
+  "result": {
+    "count": 1,
+    "id": "envenom:lingering_poison_pack"
+  }
+}

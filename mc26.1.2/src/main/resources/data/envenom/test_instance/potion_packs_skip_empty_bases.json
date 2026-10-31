@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:function",
+  "environment": "minecraft:default",
+  "function": "envenom:potion_packs_skip_empty_bases",
+  "max_ticks": 200,
+  "setup_ticks": 0,
+  "required": true,
+  "structure": "envenom:empty"
+}

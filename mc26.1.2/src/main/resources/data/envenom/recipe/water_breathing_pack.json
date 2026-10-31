@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "envenom_potion_pack",
+  "ingredients": [
+    "minecraft:paper",
+    "minecraft:nether_wart",
+    "minecraft:pufferfish"
+  ],
+  "result": {
+    "count": 1,
+    "id": "envenom:water_breathing_pack"
+  }
+}

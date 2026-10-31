@@ -134,7 +134,7 @@ final class EffectOutcome {
    static boolean isInstantHealOrHarm(MobEffectInstance instance) {
       MobEffect effect = instance.getEffect().value();
       return effect.isInstantenous()
-         && (instance.getEffect().is(MobEffects.HEAL) || instance.getEffect().is(MobEffects.HARM));
+         && (instance.getEffect().value() == MobEffects.HEAL.value() || instance.getEffect().value() == MobEffects.HARM.value());
    }
 
    /**
@@ -159,3 +159,4 @@ final class EffectOutcome {
       return a.getDuration() > b.getDuration();
    }
 }
+

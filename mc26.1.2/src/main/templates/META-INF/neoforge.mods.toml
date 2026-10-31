@@ -1,0 +1,29 @@
+license="${mod_license}"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+authors="Terminal_Foam"
+description='''
+Envenom for Minecraft 26.1.2 (NeoForge ${neo_version}).
+Coat weapons and armor with potions. Enchantments: Injection, Stacking, Amplification, Sticky, Schrodinger's Blessing.
+Renames vanilla Nausea to Vertigo, and adds Nausea (purge beneficial effects, block eating and drinking), Vulnerability, the Swift as a Hare potion, and potion packs.
+'''
+
+[[mixins]]
+config="${mod_id}.mixins.json"
+
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    type="required"
+    versionRange="[${neo_version},)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"

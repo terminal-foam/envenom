@@ -1,0 +1,20 @@
+{
+    "description": {
+        "translate": "enchantment.envenom.amplification",
+        "fallback": "Amplification"
+    },
+    "supported_items": "#envenom:enchantable/coatable",
+    "primary_items": "#envenom:enchantable/coatable",
+    "weight": 10,
+    "max_level": 5,
+    "min_cost": {
+        "base": 10,
+        "per_level_above_first": 10
+    },
+    "max_cost": {
+        "base": 30,
+        "per_level_above_first": 10
+    },
+    "anvil_cost": 2,
+    "slots": ["mainhand"]
+}

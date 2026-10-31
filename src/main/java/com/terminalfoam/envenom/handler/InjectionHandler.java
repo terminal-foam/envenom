@@ -2,11 +2,13 @@ package com.terminalfoam.envenom.handler;
 
 import com.terminalfoam.envenom.enchantment.EnvenomEnchantments;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
 
@@ -50,7 +52,7 @@ public class InjectionHandler {
          LivingEntity source = (LivingEntity)effectSource;
          ItemStack weapon = source.getMainHandItem();
          RegistryAccess ra = source.level().registryAccess();
-         if (EnchantmentHelper.getItemEnchantmentLevel(EnvenomEnchantments.injection(ra), weapon) > 0) {
+         if (weapon.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).getLevel(EnvenomEnchantments.injection(ra)) > 0) {
             event.setResult(MobEffectEvent.Applicable.Result.APPLY);
          }
       }
@@ -77,3 +79,4 @@ public class InjectionHandler {
       }
    }
 }
+

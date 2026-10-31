@@ -1,0 +1,7 @@
+{
+  "effect.minecraft.nausea": "Vertigo",
+  "item.minecraft.potion.effect.nausea": "Potion of Vertigo",
+  "item.minecraft.splash_potion.effect.nausea": "Splash Potion of Vertigo",
+  "item.minecraft.lingering_potion.effect.nausea": "Lingering Potion of Vertigo",
+  "item.minecraft.tipped_arrow.effect.nausea": "Arrow of Vertigo"
+}

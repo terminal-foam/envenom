@@ -5,15 +5,22 @@ import com.terminalfoam.envenom.coating.CoatingSlot;
 import com.terminalfoam.envenom.coating.EnvenomDataComponents;
 import com.terminalfoam.envenom.enchantment.EnvenomEnchantments;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.Holder;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -26,10 +33,11 @@ import net.minecraft.world.entity.boss.EnderDragonPart;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.entity.PartEntity;
-import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent.Post;
 import net.neoforged.neoforge.event.tick.ServerTickEvent.Pre;
 import org.jetbrains.annotations.Nullable;
@@ -127,7 +135,7 @@ public class CoatingEffectHandler {
    }
 
    private static void applyEffect(LivingEntity target, CoatingEffectHandler.PendingEffect pending, int multiplier) {
-      applyCoatingEffect(target, pending.effect, pending.amplifier, pending.durationTicks, pending.source, pending.forceInjection, multiplier);
+      applyCoatingEffect(target, pending.effect, pending.amplifier, pending.durationTicks, pending.source, pending.forceInjection, multiplier, pending.power);
    }
 
    /**
@@ -144,13 +152,14 @@ public class CoatingEffectHandler {
     *   <li><b>状态类效果</b>：时长直接乘 {@code multiplier}。</li>
     * </ul>
     *
-    * <p><b>为什么抽成一个方法</b>：剑刃（{@code onAttackEntity}）本来就有这套 ×N 语义，
+    * <p><b>为什么抽成一个方法</b>：剑刃（{@code onLivingDamagePre}）本来就有这套 ×N 语义，
     * 而剑柄（{@code checkEquipment}）与盔甲（{@code checkArmorSlot}）此前各自只做了一次
     * {@code addEffect}，让滞留涂层在被动槽位上拿不到 ×3（REPORT.md §3.7）。
     * 三处共用同一个原语，才不会再次跑偏。
     *
     * @param source         效果来源实体；被动槽位（自己给自己）传 {@code null}
     * @param forceInjection 正门被拒时是否用 {@code forceAddEffect} 强塞（仅剑刃的注射附魔会开）
+    * @param power          剑刃的承诺度强度（0.25~1）；剑柄/盔甲固定 1.0
     */
    private static void applyCoatingEffect(
          LivingEntity target,
@@ -159,13 +168,14 @@ public class CoatingEffectHandler {
          int durationTicks,
          @Nullable Entity source,
          boolean forceInjection,
-         int multiplier
+         int multiplier,
+         float power
    ) {
-      MobEffect mob = (MobEffect)effect.value();
-      boolean isHeal = effect.is(MobEffects.HEAL);
-      boolean isHarm = effect.is(MobEffects.HARM);
+      MobEffect mob = effect.value();
+      boolean isHeal = effect.value() == MobEffects.HEAL.value();
+      boolean isHarm = effect.value() == MobEffects.HARM.value();
       if (mob.isInstantenous() && (isHeal || isHarm)) {
-         float amount = 3.0F * (float)(1 << amplifier);
+         float amount = 3.0F * (float)(1 << amplifier) * power;
          boolean undead = target.isInvertedHealAndHarm();
          boolean dealDamage = isHeal && undead || isHarm && !undead;
 
@@ -246,214 +256,199 @@ public class CoatingEffectHandler {
    }
 
    /**
-    * 剑刃涂层的触发入口。
+    * 剑刃涂层的触发入口（M3 回移版：1.21.1 也改为伤害事件）。
     *
-    * <p><b>⚠️ 已知未修的缺陷："攻击被判为不发生"时门会被绕过</b>（方案书 §10.6 F-c）。
+    * <p>原实现挂在 {@code AttackEntityEvent} 上，而该事件只在 {@code Player.attack()} 头部触发一次，
+    * 于是横扫的次要目标（{@code Player.doSweepAttack} 直接 {@code hurtServer}，不走
+    * {@code Player.attack()}）完全不会触发涂层。改挂 {@code LivingDamageEvent.Pre} 后，
+    * 普通近战与横扫的每个目标都按"真正受伤"结算。
     *
-    * <p>攻击蓄力门（下面的 {@code getAttackStrengthScale(0.5F)} 检查）依赖"每次真正落地的攻击
-    * 都会在原版 {@code Player.attack()} 的 :1414 复位 ticker"。但有四条早退路径会跳过那次复位：
-    * ① 事件被取消 ② {@code Item.onLeftClickEntity} 返回 true ③ {@code isAttackable()} 为 false
-    * ④ {@code skipAttackInteraction()} 为 true。此时门会卡在放行状态，可被连点刷掉涂层。
+    * <p>1.21.1 没有矛，因此这里没有 26.1.2 分支的突刺/冲刺（KINETIC_WEAPON）逻辑。
     *
-    * <p><b>为什么不在本方法里加 {@code if (event.isCanceled()) return;}</b>：
-    * 那个检查是<b>死代码</b>。NeoForge 的事件总线在 {@code @SubscribeEvent.receiveCanceled()}
-    * 为 false（默认值）时，<b>根本不会把已取消的事件派发给本监听器</b>
-    * （{@code SubscribeEventListener.invoke} 先查 {@code receiveCanceled()}，为假再看
-    * {@code event.isCanceled()} 决定是否跳过）。所以写在这里永远不会执行。
-    * 想真正生效得改成 {@code @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)} ——
-    * 但那会让"取消事件但仍扣涂层"变成真实行为，属于**功能变更**而非重构，故不做。
+    * <p><b>顺带修掉旧缺陷 F-c</b>：旧门依赖 {@code Player.attack()} 复位攻击 ticker，而
+    * "攻击被判为不发生"（被取消 / {@code onLeftClickEntity} 返回 true / 不可攻击 / 跳过交互）
+    * 时不会复位，门会卡在放行状态。伤害事件只在伤害真正落地时触发，这个口子自然消失。
     *
-    * <p>按生态调研（408 个模组，命中率 0.5%），作者已决定**不修**这条。
+    * <p><b>结算粒度 = 每个真正受伤的目标一次</b>：横扫打中 5 只就结算 5 次、扣 5 次涂层，
+    * 这是刻意的（一轮 AoE 换 5 份药效）。同一次挥击（同 tick）对同一个目标只结算一次：
+    * 多部件 Boss 的多个部件会解包到同一本体，由 {@link #markSwingHit} 去重。
     */
    @SubscribeEvent
-   public static void onAttackEntity(AttackEntityEvent event) {
-      Player player = event.getEntity();
-      // 仅服务端处理：客户端收不到 ServerTickEvent，延迟队列里的效果永远不会被消费，
-      // 于是每砍一刀就堆积一条 PendingEffect 并持有 Level 强引用（内存泄漏）；
-      // 同时该早退也保证 PENDING_EFFECTS 只在服务端线程读写，ArrayList 无需并发容器。
+   public static void onLivingDamagePre(LivingDamageEvent.Pre event) {
+      DamageSource source = event.getSource();
+      // 只处理玩家近战：投掷物/箭矢的 directEntity 是弹射物，直接排除
+      if (!(source.getEntity() instanceof ServerPlayer player)) {
+         return;
+      }
+      if (source.getDirectEntity() != player) {
+         return;
+      }
+      LivingEntity livingTarget = event.getEntity();
+      if (livingTarget == player) {
+         return; // 自伤
+      }
       if (player.level().isClientSide()) {
          return;
       }
-      ItemStack weapon = player.getMainHandItem();
-      if (!weapon.isEmpty()) {
-         // D 档：这一句是【刻意设计】，不是随手写的防抖 —— 别当冗余删掉。
-         //
-         // 语义：剑刃涂层只在【武器攻击冷却结束后】才允许施加效果。等价写法是
-         // getAttackStrengthScale(0.5F) >= 1.0F，也就是蓄力 ticker >= 12（剑的 delay 是 12.5）。
-         //
-         // 为什么必须与 getAttackStrengthScale 用同一个 0.5F：原版 Player.attack() 的伤害与
-         // 暴击判定（:1230 f2 = getAttackStrengthScale(0.5F)、:1241 f2 > 0.9F）用的就是这个值。
-         // 用别的值会让"涂层放行"与"伤害真的打出"错开一档。
-         //
-         // ⚠️ 连点攻击的语义边界：门的 iflt 直跳方法末尾的 return，所以冷却未满时
-         //    【既不施加效果、也不扣次数、也不写回物品】。
-         //    但原版只在"攻击真的落到目标身上"时才复位 ticker（:1414，位于
-         //    isAttackable() ∩ !skipAttackInteraction() 之内）—— 事件被取消等情况不会复位。
-         //    那条路径已由 F-b 的 isCanceled 检查堵住；其余早退路径见方案书 §10.6 F-c（决定不修）。
-         if (!(player.getAttackStrengthScale(0.5F) < 1.0F)) {
-            List<Coating> coatings = (List<Coating>)weapon.getOrDefault(EnvenomDataComponents.COATINGS, List.of());
-            // ── 目标判定：多部件实体要还原成它的主体 ──
-            //
-            // 多部件生物（原版末影龙、暮色森林九头蛇/娜迦、Cataclysm Boss、冰蜘蛛…）的
-            // 【本体】通常 isPickable() == false，玩家的射线命中的永远是【部件】。
-            // 而部件不是 LivingEntity（PartEntity extends Entity），所以下面那道
-            // `instanceof LivingEntity` 会直接把整段涂层逻辑跳过 ——
-            // 表现为"涂了药水完全没反应"，且不消耗次数、不给任何提示。
-            //
-            // 但语义上玩家打的是【那个生物】，所以把部件还原成主体是目标判定的固有职责。
-            //
-            // 两个分支天然互斥：EnderDragonPart extends Entity（不是 PartEntity）。
-            // 保留末影龙分支不动 —— 它是已实测有效的代码，删掉收益为零、风险非零。
-            //
-            // ⚠️ 解包之后【必须保留】外层那道 instanceof LivingEntity：
-            //    有的部件的父实体也不是生物。实例：Iron 法术书的 ShieldPart，
-            //    其父 AbstractShieldEntity extends Entity（法术护盾，非生物）
-            //    ⇒ 解包后仍不是 LivingEntity ⇒ 原样跳过，行为不比现在差。
-            //
-            // ⚠️ getParent() 可能返回 null（暮色森林自己也在 HydraPart.hurt 里判了空）。
-            Entity target = event.getTarget();
-            if (target instanceof EnderDragonPart dragonPart) {
-               target = dragonPart.parentMob;
-            } else if (target instanceof PartEntity<?> multiPart) {
-               Entity parent = multiPart.getParent();
-               if (parent != null) {
-                  target = parent;
-               }
-            }
 
-            if (target instanceof LivingEntity livingTarget) {
-               RegistryAccess ra = target.level().registryAccess();
-               int ampLevel = EnchantmentHelper.getItemEnchantmentLevel(EnvenomEnchantments.amplification(ra), weapon);
-               int stickyLevel = EnchantmentHelper.getItemEnchantmentLevel(EnvenomEnchantments.sticky(ra), weapon);
-               int chaosLevel = EnchantmentHelper.getItemEnchantmentLevel(EnvenomEnchantments.schrodingersBlessing(ra), weapon);
-               int stackingLevel = EnchantmentHelper.getItemEnchantmentLevel(EnvenomEnchantments.stacking(ra), weapon);
-               int injectionLevel = EnchantmentHelper.getItemEnchantmentLevel(EnvenomEnchantments.injection(ra), weapon);
-               if (stackingLevel > 0) {
-                  for (MobEffectInstance activeEffect : new ArrayList<>(livingTarget.getActiveEffects())) {
-                     if (((MobEffect)activeEffect.getEffect().value()).getCategory() == MobEffectCategory.HARMFUL) {
-                        int amp = activeEffect.getAmplifier();
-                        boolean triggered = player.getRandom().nextFloat() < (float)stackingLevel / (float)(stackingLevel + amp);
-                        int boost = triggered ? 1 + player.getRandom().nextInt(stackingLevel) : 0;
+      ItemStack weapon = source.getWeaponItem();
+      if (weapon.isEmpty()) {
+         weapon = player.getMainHandItem();
+      }
+      if (weapon.isEmpty()) {
+         return;
+      }
+      List<Coating> coatings = weapon.getOrDefault(EnvenomDataComponents.COATINGS, List.of());
+      if (coatings.stream().noneMatch(coating -> coating.slot() == CoatingSlot.BLADE)) {
+         return; // 没有剑刃涂层：连附魔查询都不做
+      }
 
-                        // F.2：原先这里【无条件】走 forceAddEffect（= 直接 put 替换），后果有两个 ——
-                        //   ① 每次叠层都把目标身上的【备胎链 hiddenEffect】整个丢掉，
-                        //      与 E 档刚恢复的备胎能力正好互相抵消；
-                        //   ② 掷骰失败（boost == 0）时也照样替换一遍，纯属白清一次链。
-                        // 现在先走正门：addEffect → update 会"提级"且【保留备胎链】。
-                        if (boost > 0) {
-                           int newAmp = Math.min(255, amp + boost);
-                           if (newAmp > amp) {
-                              MobEffectInstance boosted = new MobEffectInstance(
-                                 activeEffect.getEffect(),
-                                 stackingDuration(activeEffect.getDuration()),
-                                 newAmp,
-                                 activeEffect.isAmbient(),
-                                 activeEffect.isVisible(),
-                                 activeEffect.showIcon()
-                              );
-                              if (!livingTarget.addEffect(boosted, player)) {
-                                 // 正门被挡（末影龙 / 凋灵的硬编码拒绝，或 update 认为无需变更）
-                                 // ⇒ 回退到强制施加。
-                                 livingTarget.forceAddEffect(boosted, player);
-                              }
-                           }
-                        }
+      // 同一次挥击（同 tick）对同一本体只结算一次：横扫/贯穿/多部件都会重复命中
+      if (!markSwingHit(player.getUUID(), livingTarget.level().getGameTime(), livingTarget.getUUID())) {
+         return;
+      }
+
+      // 承诺度 → 效果强度（1.21.1 只有攻击冷却条这一个维度）
+      float power = coatingPower(player, weapon);
+
+      RegistryAccess ra = livingTarget.level().registryAccess();
+      int ampLevel = weapon.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).getLevel(EnvenomEnchantments.amplification(ra));
+      int stickyLevel = weapon.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).getLevel(EnvenomEnchantments.sticky(ra));
+      int chaosLevel = weapon.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).getLevel(EnvenomEnchantments.schrodingersBlessing(ra));
+      int stackingLevel = weapon.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).getLevel(EnvenomEnchantments.stacking(ra));
+      int injectionLevel = weapon.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).getLevel(EnvenomEnchantments.injection(ra));
+      if (stackingLevel > 0) {
+         for (MobEffectInstance activeEffect : new ArrayList<>(livingTarget.getActiveEffects())) {
+            if (activeEffect.getEffect().value().getCategory() == MobEffectCategory.HARMFUL) {
+               int amp = activeEffect.getAmplifier();
+               boolean triggered = player.getRandom().nextFloat() < (float)stackingLevel / (float)(stackingLevel + amp);
+               int boost = triggered ? 1 + player.getRandom().nextInt(stackingLevel) : 0;
+
+               // F.2：先走正门：addEffect → update 会"提级"且【保留备胎链】。
+               if (boost > 0) {
+                  int newAmp = Math.min(255, amp + boost);
+                  if (newAmp > amp) {
+                     MobEffectInstance boosted = new MobEffectInstance(
+                        activeEffect.getEffect(),
+                        stackingDuration(activeEffect.getDuration()),
+                        newAmp,
+                        activeEffect.isAmbient(),
+                        activeEffect.isVisible(),
+                        activeEffect.showIcon()
+                     );
+                     if (!livingTarget.addEffect(boosted, player)) {
+                        livingTarget.forceAddEffect(boosted, player);
                      }
                   }
-               }
-
-               List<Coating> newCoatings = new ArrayList<>();
-               boolean changed = false;
-                // G 档：本刀已经入队过的效果实例。用于剔除"同 tick 内完全重复"的号票。
-                List<MobEffectInstance> queuedThisSwing = new ArrayList<>();
-
-               for (Coating coating : coatings) {
-                  if (coating.slot() != CoatingSlot.BLADE) {
-                     newCoatings.add(coating);
-                  } else {
-                     int amplifier = coating.amplifier() + calcAmpBonus(ampLevel, player.getRandom());
-                     Holder<MobEffect> effect = coating.effect();
-                     if (chaosLevel > 0) {
-                        effect = randomEffect(player.getRandom());
-                     }
-
-                     // F-a：只有"这次施加真的会改变目标身上的东西"才扣次数。判据与原版 update 的
-                     // 合并语义对齐 —— 提级 / 同级延长 / 建备胎 都算有变化；"等级更低且时长不更长"
-                     // 什么都不做 ⇒ 不该扣（否则就是白烧次数）。
-                     //
-                     // ⚠️ 这是【事件侧预判】，距实际施加（下一 tick 的 applyEffect）差一 tick，
-                     //    期间目标状态可能变化 ⇒ 判据可能过时。方向保守（宁可少扣）。彻底的版本是
-                     //    "应用侧确认后退还次数"，留作后备（方案书 §3.H.5）。
-                     //
-                     // 注意：免疫目标仍然照扣（作者有意设计，§10.1）⇒ 这里不传 immune 位。
-                      // G 档：同一次攻击里若已入队过"完全一样"的号票，这一张就不必再入队、也不必再扣
-                      // 一次 —— 原版 update 对完全相同的实例什么都不做，第二张纯属浪费。判据是
-                      // 【严格六项】（效果+等级+时长+ambient+visible+showIcon），与 equals 口径一致。
-                      // ⚠️ 瞬间治疗/伤害必须排除在去重之外：它们走 applyEffect 的专用分支、会手动
-                      //    清无敌帧（invulnerableTime = 0）⇒ 两张号票 = 两次全额结算，去重会砍半伤害。
-                      //    isStrictDuplicate 内部已处理这一点。
-                     // R2/R3 修正：判据必须用【实际施放时长】。滞留涂层存的是单份时长、实际施放 3 份，
-                      // 直接用 coating.durationTicks() 会误判两种情形：
-                      //   R2：存 900t / 实放 2700t，目标还有 1500t 中毒 I 时按 900 判 ⇒ "无变化"
-                      //       ⇒ 真实的延长被静默丢弃（baseline 会延长到 2700 并扣次）。
-                      //   R3：同一把剑上"普通中毒 900"与"滞留中毒 900"按 (effect, duration, amp)
-                      //       完全相等 ⇒ 排在前的非滞留票把后面的滞留票当"重复"吞掉。
-                      int multiplier = coating.lingering() ? 3 : 1;
-                      MobEffectInstance incoming =
-                         new MobEffectInstance(effect, coating.durationTicks() * multiplier, amplifier);
-                     int outcome = EffectOutcome.classify(livingTarget.getEffect(effect), incoming, false);
-
-                      // R4 修正：瞬间治疗/伤害【不能】被 willChange 挡。它们在 applyEffect 里是
-                      // 逐次独立结算（先 target.invulnerableTime = 0 再 hurt/heal），而且原版
-                      // /effect give 与模组自身的 HILT/ARMOR 路径都会在 activeEffects 留下瞬间实例
-                      // ⇒ 目标"已有同类实例"完全可能，但那不构成"这次施放没意义"。
-                      boolean worthApplying = EffectOutcome.isInstantHealOrHarm(incoming)
-                         || EffectOutcome.willChange(outcome);
-                      if (worthApplying
-                            && !queuedThisSwing.stream().anyMatch(m -> EffectOutcome.isStrictDuplicate(m, incoming))) {
-                        PENDING_EFFECTS.add(
-                           new CoatingEffectHandler.PendingEffect(
-                              livingTarget.level(),
-                              livingTarget.getUUID(),
-                              effect,
-                              amplifier,
-                              coating.durationTicks(),
-                               multiplier,
-                              player,
-                              injectionLevel > 0
-                           )
-                        );
-                        queuedThisSwing.add(incoming);
-                        int deduct = multiplier;
-                        Coating updated = coating;
-
-                        for (int u = 0; u < deduct && updated != null; u++) {
-                           if (stickyLevel <= 0 || !(player.getRandom().nextFloat() < (float)stickyLevel / ((float)stickyLevel + 1.0F))) {
-                              updated = updated.decrementUses();
-                           }
-                        }
-
-                        if (updated != null) {
-                           newCoatings.add(updated);
-                        }
-
-                        changed = true;
-                     } else {
-                        // 不会产生变化 ⇒ 入队也是白费（下一 tick 会被 addEffect 拒绝）
-                        // ⇒ 不扣次、不入队、涂层原样保留。
-                        newCoatings.add(coating);
-                     }
-                   }
-               }
-
-               if (changed) {
-                  weapon.set(EnvenomDataComponents.COATINGS, newCoatings.isEmpty() ? null : newCoatings);
                }
             }
          }
       }
+
+      List<Coating> newCoatings = new ArrayList<>();
+      boolean changed = false;
+      // G 档：本刀已经入队过的效果实例。用于剔除"同 tick 内完全重复"的号票。
+      List<MobEffectInstance> queuedThisSwing = new ArrayList<>();
+
+      for (Coating coating : coatings) {
+         if (coating.slot() != CoatingSlot.BLADE) {
+            newCoatings.add(coating);
+         } else {
+            int amplifier = coating.amplifier() + calcAmpBonus(ampLevel, player.getRandom());
+            Holder<MobEffect> effect = coating.effect();
+            if (chaosLevel > 0) {
+               effect = randomEffect(player.getRandom());
+            }
+
+            // F-a：只有"这次施加真的会改变目标身上的东西"才扣次数。
+            int multiplier = coating.lingering() ? 3 : 1;
+            int scaledDuration = scaleDuration(coating.durationTicks(), power);
+            MobEffectInstance incoming = new MobEffectInstance(effect, scaledDuration * multiplier, amplifier);
+            int outcome = EffectOutcome.classify(livingTarget.getEffect(effect), incoming, false);
+
+            boolean worthApplying = EffectOutcome.isInstantHealOrHarm(incoming)
+               || EffectOutcome.willChange(outcome);
+            if (worthApplying
+                  && !queuedThisSwing.stream().anyMatch(m -> EffectOutcome.isStrictDuplicate(m, incoming))) {
+               PENDING_EFFECTS.add(
+                  new CoatingEffectHandler.PendingEffect(
+                     livingTarget.level(),
+                     livingTarget.getUUID(),
+                     effect,
+                     amplifier,
+                     scaledDuration,
+                     multiplier,
+                     player,
+                     injectionLevel > 0,
+                     power
+                  )
+               );
+               queuedThisSwing.add(incoming);
+               int deduct = multiplier;
+               Coating updated = coating;
+
+               for (int u = 0; u < deduct && updated != null; u++) {
+                  if (stickyLevel <= 0 || !(player.getRandom().nextFloat() < (float)stickyLevel / ((float)stickyLevel + 1.0F))) {
+                     updated = updated.decrementUses();
+                  }
+               }
+
+               if (updated != null) {
+                  newCoatings.add(updated);
+               }
+
+               changed = true;
+            } else {
+               newCoatings.add(coating);
+            }
+         }
+      }
+
+      if (changed) {
+         weapon.set(EnvenomDataComponents.COATINGS, newCoatings.isEmpty() ? null : newCoatings);
+      }
    }
 
+   /**
+    * 0..1 的"承诺度"：1.21.1 只有近战，取攻击冷却条（与原版伤害/暴击同一个 0.5F 取样点）。
+    */
+   private static float commitment(ServerPlayer player, ItemStack weapon) {
+      return Mth.clamp(player.getAttackStrengthScale(0.5F), 0.0F, 1.0F);
+   }
+
+   /**
+    * 承诺度 → 效果强度：{@code sqrt} 曲线让半蓄力也有像样的效果，下限 0.25 避免"看不见的效果"。
+    */
+   private static float coatingPower(ServerPlayer player, ItemStack weapon) {
+      float raw = commitment(player, weapon);
+      return Mth.clamp((float)Math.sqrt(raw), 0.25F, 1.0F);
+   }
+
+   /** 按强度缩放时长；下限 20 tick。 */
+   private static int scaleDuration(int baseTicks, float power) {
+      return Math.max(20, Math.round(baseTicks * power));
+   }
+
+   /** 同一次挥击（同 tick）对同一目标只结算一次。 */
+   private static final Map<UUID, SwingRecord> SWING_HITS = new HashMap<>();
+
+   private static boolean markSwingHit(UUID playerId, long tick, UUID targetId) {
+      SwingRecord record = SWING_HITS.get(playerId);
+      if (record == null || record.tick != tick) {
+         record = new SwingRecord(tick);
+         SWING_HITS.put(playerId, record);
+      }
+      return record.targets.add(targetId);
+   }
+
+   private static final class SwingRecord {
+      private final long tick;
+      private final Set<UUID> targets = new HashSet<>();
+
+      private SwingRecord(long tick) {
+         this.tick = tick;
+      }
+   }
    @SubscribeEvent
    public static void onEntityTick(Post event) {
       Entity entity = event.getEntity();
@@ -478,20 +473,21 @@ public class CoatingEffectHandler {
    private static void checkEquipment(LivingEntity entity, InteractionHand hand, long now) {
       ItemStack stack = entity.getItemInHand(hand);
       if (!stack.isEmpty()) {
-         List<Coating> coatings = (List<Coating>)stack.getOrDefault(EnvenomDataComponents.COATINGS, List.of());
+         List<Coating> coatings = stack.getOrDefault(EnvenomDataComponents.COATINGS, List.of());
          // 早退：没有本路径关心的 HILT 涂层就直接返回。只挡 isEmpty() 不够 —— 只带 BLADE 涂层的武器
          // （最常见）也会走到这里，而下面 3 次附魔查询（要翻注册表）与两次分配对它毫无意义。
          if (coatings.stream().noneMatch(c -> c.slot() == CoatingSlot.HILT)) {
             return;
          }
          RegistryAccess ra = entity.level().registryAccess();
-         int ampLevel = EnchantmentHelper.getItemEnchantmentLevel(EnvenomEnchantments.amplification(ra), stack);
-         int stickyLevel = EnchantmentHelper.getItemEnchantmentLevel(EnvenomEnchantments.sticky(ra), stack);
-         int chaosLevel = EnchantmentHelper.getItemEnchantmentLevel(EnvenomEnchantments.schrodingersBlessing(ra), stack);
+         int ampLevel = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).getLevel(EnvenomEnchantments.amplification(ra));
+         int stickyLevel = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).getLevel(EnvenomEnchantments.sticky(ra));
+         int chaosLevel = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).getLevel(EnvenomEnchantments.schrodingersBlessing(ra));
          List<Coating> newCoatings = new ArrayList<>();
          boolean changed = false;
           // B 档：冷却随物品走。取一次可变副本，触发时改它，最后连同 COATINGS 一起写回。
           Map<String, Long> cooldowns = TriggerCooldown.read(stack);
+          Map<String, Long> appliedUntil = TriggerCooldown.readApplied(stack);
 
          for (int i = 0; i < coatings.size(); i++) {
             Coating coating = coatings.get(i);
@@ -499,7 +495,13 @@ public class CoatingEffectHandler {
                newCoatings.add(coating);
             } else {
                String key = TriggerCooldown.key(coating);
-               if (canTrigger(cooldowns, key, now, TRIGGER_INTERVAL)) {
+               boolean instant = coating.effect().value().isInstantenous();
+               // 混沌祝福会把实际效果换成随机效果，无法按原效果追踪剩余时长，不参与补扣。
+               boolean trackable = !instant && chaosLevel == 0;
+               long appliedEnd = appliedUntil.getOrDefault(key, 0L);
+               boolean vanished = trackable && appliedEnd > 0L && entity.isAlive() && !entity.hasEffect(coating.effect());
+               boolean due = canTrigger(cooldowns, key, now, TRIGGER_INTERVAL);
+               if (due || vanished) {
                   int amplifier = coating.amplifier() + calcAmpBonus(ampLevel, entity.getRandom());
                   Holder<MobEffect> effect = coating.effect();
                   if (chaosLevel > 0) {
@@ -509,8 +511,15 @@ public class CoatingEffectHandler {
                   // 滞留涂层按 ×N 施加（时长 / 瞬间结算次数），并相应扣 N 次 —— 与剑刃同源。
                   // （此前这里只做了一次 addEffect、只扣 1 次，滞留涂在剑柄上拿不到 ×3，REPORT.md §3.7）
                   int multiplier = coating.lingering() ? 3 : 1;
-                  applyCoatingEffect(entity, effect, amplifier, coating.durationTicks(), null, false, multiplier);
-                  TriggerCooldown.mark(cooldowns, key, now);
+                  applyCoatingEffect(entity, effect, amplifier, coating.durationTicks(), null, false, multiplier, 1.0F);
+                  if (due) {
+                     TriggerCooldown.mark(cooldowns, key, now);
+                  }
+                  if (trackable && entity.hasEffect(coating.effect())) {
+                     appliedUntil.put(key, now + (long)coating.durationTicks() * multiplier);
+                  } else {
+                     appliedUntil.remove(key);
+                  }
 
                   // 扣次：每次扣独立掷粘滞骰，与剑刃的扣次循环一致。
                   Coating updated = coating;
@@ -521,6 +530,8 @@ public class CoatingEffectHandler {
                   }
                   if (updated != null) {
                      newCoatings.add(updated);
+                  } else {
+                     appliedUntil.remove(key);
                   }
 
                   changed = true;
@@ -532,13 +543,14 @@ public class CoatingEffectHandler {
 
           if (changed) {
              TriggerCooldown.write(stack, cooldowns);
+             TriggerCooldown.writeApplied(stack, appliedUntil);
              stack.set(EnvenomDataComponents.COATINGS, newCoatings.isEmpty() ? null : newCoatings);
           }
       }
    }
 
    private static void checkArmorSlot(LivingEntity entity, ItemStack armor, long now) {
-      List<Coating> coatings = (List<Coating>)armor.getOrDefault(EnvenomDataComponents.COATINGS, List.of());
+      List<Coating> coatings = armor.getOrDefault(EnvenomDataComponents.COATINGS, List.of());
       // 早退：没有本路径关心的 ARMOR 涂层就直接返回。只挡 isEmpty() 不够 —— 只带 BLADE 涂层的物品
       // 也会走到这里，而下面的附魔查询与分配对它毫无意义。
       if (coatings.stream().noneMatch(c -> c.slot() == CoatingSlot.ARMOR)) {
@@ -548,14 +560,15 @@ public class CoatingEffectHandler {
       boolean changed = false;
       // B 档：冷却随物品走。取一次可变副本，触发时改它，最后连同 COATINGS 一起写回。
       Map<String, Long> cooldowns = TriggerCooldown.read(armor);
+      Map<String, Long> appliedUntil = TriggerCooldown.readApplied(armor);
 
       for (int i = 0; i < coatings.size(); i++) {
          Coating coating = coatings.get(i);
          if (coating.slot() != CoatingSlot.ARMOR) {
             newCoatings.add(coating);
          } else {
-            boolean isInstantHealHarm = ((MobEffect)coating.effect().value()).isInstantenous()
-               && (coating.effect().is(MobEffects.HEAL) || coating.effect().is(MobEffects.HARM));
+            boolean isInstantHealHarm = coating.effect().value().isInstantenous()
+               && (coating.effect().value() == MobEffects.HEAL.value() || coating.effect().value() == MobEffects.HARM.value());
             long interval = isInstantHealHarm ? INSTANT_ARMOR_INTERVAL : TRIGGER_INTERVAL;
             String key = TriggerCooldown.key(coating);
 
@@ -574,27 +587,40 @@ public class CoatingEffectHandler {
             // 另外：跳过条件是【永久状态】（满血就是满血、死了就是死了），所以"先判跳过再判冷却"
             // 不会因为省掉冷却记账而多付任何东西 —— 门内门外都只多两个 getter。
             if (isInstantHealHarm) {
-               if (coating.effect().is(MobEffects.HEAL) && entity.getHealth() >= entity.getMaxHealth()) {
+               if (coating.effect().value() == MobEffects.HEAL.value() && entity.getHealth() >= entity.getMaxHealth()) {
                   newCoatings.add(coating);
                   continue;
                }
 
-               if (coating.effect().is(MobEffects.HARM) && !entity.isAlive()) {
+               if (coating.effect().value() == MobEffects.HARM.value() && !entity.isAlive()) {
                   newCoatings.add(coating);
                   continue;
                }
             }
 
-            if (canTrigger(cooldowns, key, now, interval)) {
+            boolean instant = coating.effect().value().isInstantenous();
+            long appliedEnd = appliedUntil.getOrDefault(key, 0L);
+            boolean vanished = !instant && appliedEnd > 0L && entity.isAlive() && !entity.hasEffect(coating.effect());
+            boolean due = canTrigger(cooldowns, key, now, interval);
+            if (due || vanished) {
                // 滞留涂层按 ×N 施加（时长 / 瞬间结算次数），并相应扣 N 次 —— 与剑刃同源。
                // （此前这里只做了一次 addEffect、只扣 1 次，滞留涂在盔甲上拿不到 ×3，REPORT.md §3.7）
                // 盔甲槽不读任何附魔，所以这里没有粘滞骰，直接扣 N 次。
                int multiplier = coating.lingering() ? 3 : 1;
-               applyCoatingEffect(entity, coating.effect(), coating.amplifier(), coating.durationTicks(), null, false, multiplier);
-               TriggerCooldown.mark(cooldowns, key, now);
+               applyCoatingEffect(entity, coating.effect(), coating.amplifier(), coating.durationTicks(), null, false, multiplier, 1.0F);
+               if (due) {
+                  TriggerCooldown.mark(cooldowns, key, now);
+               }
+               if (!instant && entity.hasEffect(coating.effect())) {
+                  appliedUntil.put(key, now + (long)coating.durationTicks() * multiplier);
+               } else {
+                  appliedUntil.remove(key);
+               }
                Coating updated = coating.decrementUses(multiplier);
                if (updated != null) {
                   newCoatings.add(updated);
+               } else {
+                  appliedUntil.remove(key);
                }
 
                changed = true;
@@ -606,6 +632,7 @@ public class CoatingEffectHandler {
 
       if (changed) {
          TriggerCooldown.write(armor, cooldowns);
+         TriggerCooldown.writeApplied(armor, appliedUntil);
          armor.set(EnvenomDataComponents.COATINGS, newCoatings.isEmpty() ? null : newCoatings);
       }
    }
@@ -622,10 +649,16 @@ public class CoatingEffectHandler {
       Holder<MobEffect> effect,
       int amplifier,
       int durationTicks,
-      /** 实际施放次数：滞留涂层为 3，其余为 1。也用于判断"是不是滞留"。 */
+      // 实际施放次数：滞留涂层为 3，其余为 1。也用于判断"是不是滞留"。
       int multiplier,
       @Nullable Entity source,
-      boolean forceInjection
+      boolean forceInjection,
+      float power
    ) {
    }
 }
+
+
+
+
+

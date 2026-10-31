@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "envenom:item/potion_pack",
+    "layer1": "envenom:item/potion_pack_overlay"
+  }
+}

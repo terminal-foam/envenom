@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "envenom_potion_pack",
+  "ingredients": [
+    "minecraft:paper",
+    "minecraft:nether_wart",
+    "minecraft:breeze_rod"
+  ],
+  "result": {
+    "count": 1,
+    "id": "envenom:wind_charged_pack"
+  }
+}

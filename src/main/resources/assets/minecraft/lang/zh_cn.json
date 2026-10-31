@@ -1,0 +1,7 @@
+{
+  "effect.minecraft.nausea": "眩晕",
+  "item.minecraft.potion.effect.nausea": "眩晕药水",
+  "item.minecraft.splash_potion.effect.nausea": "喷溅型眩晕药水",
+  "item.minecraft.lingering_potion.effect.nausea": "滞留型眩晕药水",
+  "item.minecraft.tipped_arrow.effect.nausea": "眩晕之箭"
+}

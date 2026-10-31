@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "envenom_potion_pack",
+  "ingredients": [
+    "minecraft:paper",
+    "minecraft:sugar"
+  ],
+  "result": {
+    "count": 1,
+    "id": "envenom:swiftness_pack"
+  }
+}

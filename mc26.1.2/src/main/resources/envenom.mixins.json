@@ -1,0 +1,15 @@
+{
+    "required": true,
+    "package": "com.terminalfoam.envenom.mixin",
+    "compatibilityLevel": "JAVA_21",
+    "mixins": [
+        "BuiltinTestFunctionsMixin",
+        "CakeEatMixin",
+        "EnderDragonHurtMixin",
+        "PoisonMixin",
+        "RegenerationMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}

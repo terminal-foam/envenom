@@ -62,4 +62,14 @@ final class TriggerCooldown {
    static void write(ItemStack stack, Map<String, Long> cooldowns) {
       stack.set(EnvenomDataComponents.TRIGGER_COOLDOWNS, cooldowns.isEmpty() ? null : cooldowns);
    }
+
+   /** 取出"效果预期结束时刻"的可变副本。 */
+   static Map<String, Long> readApplied(ItemStack stack) {
+      return new HashMap<>(stack.getOrDefault(EnvenomDataComponents.APPLIED_UNTIL, Map.of()));
+   }
+
+   /** 写回；空表时移除组件。 */
+   static void writeApplied(ItemStack stack, Map<String, Long> appliedUntil) {
+      stack.set(EnvenomDataComponents.APPLIED_UNTIL, appliedUntil.isEmpty() ? null : appliedUntil);
+   }
 }

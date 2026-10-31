@@ -2,10 +2,14 @@ package com.terminalfoam.envenom;
 
 import com.terminalfoam.envenom.coating.EnvenomDataComponents;
 import com.terminalfoam.envenom.config.EnvenomConfig;
+import com.terminalfoam.envenom.effect.EnvenomEffects;
 import com.terminalfoam.envenom.handler.CoatingApplicationHandler;
 import com.terminalfoam.envenom.handler.CoatingEffectHandler;
 import com.terminalfoam.envenom.handler.CoatingTooltipHandler;
+import com.terminalfoam.envenom.handler.EnvenomEffectHandler;
 import com.terminalfoam.envenom.handler.InjectionHandler;
+import com.terminalfoam.envenom.item.EnvenomItems;
+import com.terminalfoam.envenom.potion.EnvenomPotions;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -19,6 +23,9 @@ public class Envenom {
 
     public Envenom(IEventBus modEventBus, ModContainer modContainer) {
         EnvenomDataComponents.REGISTRY.register(modEventBus);
+        EnvenomEffects.EFFECTS.register(modEventBus);
+        EnvenomPotions.POTIONS.register(modEventBus);
+        EnvenomItems.ITEMS.register(modEventBus);
         modContainer.registerConfig(ModConfig.Type.SERVER, EnvenomConfig.SPEC);
         modEventBus.addListener(ModConfigEvent.Loading.class, EnvenomConfig::onLoad);
         modEventBus.addListener(ModConfigEvent.Reloading.class, EnvenomConfig::onLoad);
@@ -27,5 +34,7 @@ public class Envenom {
         NeoForge.EVENT_BUS.register(CoatingEffectHandler.class);
         NeoForge.EVENT_BUS.register(CoatingTooltipHandler.class);
         NeoForge.EVENT_BUS.register(InjectionHandler.class);
+        NeoForge.EVENT_BUS.register(EnvenomEffectHandler.class);
+        NeoForge.EVENT_BUS.register(EnvenomPotions.class);
     }
 }

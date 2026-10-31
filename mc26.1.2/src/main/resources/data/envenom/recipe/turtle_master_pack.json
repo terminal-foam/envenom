@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "envenom_potion_pack",
+  "ingredients": [
+    "minecraft:paper",
+    "minecraft:nether_wart",
+    "minecraft:turtle_helmet"
+  ],
+  "result": {
+    "count": 1,
+    "id": "envenom:turtle_master_pack"
+  }
+}

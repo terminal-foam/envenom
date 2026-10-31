@@ -46,9 +46,9 @@ authors="Terminal_Foam"
 
 # The description text for the mod (multi line!) (#mandatory)
 description='''
-Envenom - Potion Coating Mod (NeoForge 1.21.1).
-Coat weapons and armor with potions: apply effects on attack or while worn.
-Enchantments: Injection, Stacking, Amplification, Sticky, Schrodinger's Blessing.
+Envenom (NeoForge 1.21.1).
+Coat weapons and armor with potions. Enchantments: Injection, Stacking, Amplification, Sticky, Schrodinger's Blessing.
+Renames vanilla Nausea to Vertigo, and adds Nausea (purge beneficial effects, block eating and drinking), Vulnerability, the Swift as a Hare potion, and potion packs.
 '''
 
 # The [[mixins]] block allows you to declare your mixin config to FML so that it gets loaded.

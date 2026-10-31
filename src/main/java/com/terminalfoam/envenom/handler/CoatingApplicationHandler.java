@@ -251,7 +251,7 @@ public class CoatingApplicationHandler {
     private static boolean isWaterBottle(ItemStack stack) {
         if (!stack.is(Items.POTION)) return false;
         PotionContents contents = stack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
-        return contents.potion().isPresent() && contents.potion().get().is(Potions.WATER);
+        return contents.potion().isPresent() && contents.potion().get().value() == Potions.WATER.value();
     }
 
     private static void removeOneCoating(ItemStack stack) {
@@ -279,3 +279,4 @@ public class CoatingApplicationHandler {
         stack.set(EnvenomDataComponents.COATINGS, kept.isEmpty() ? null : kept);
     }
 }
+

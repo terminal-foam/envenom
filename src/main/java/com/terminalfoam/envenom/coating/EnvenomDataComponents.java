@@ -38,4 +38,17 @@ public class EnvenomDataComponents {
                     .persistent(Codec.unboundedMap(Codec.STRING, Codec.LONG))
                     .networkSynchronized(ByteBufCodecs.map(HashMap::new, ByteBufCodecs.STRING_UTF8, ByteBufCodecs.VAR_LONG))
                     .build());
+
+    /**
+     * 已施加效果的预期结束时刻：效果 id → 预计消失的 game time。
+     *
+     * <p>用于「效果提前消失就补扣一次」：施加成功时写入 now + 实际时长；
+     * 每 tick 扫描若发现效果已不在身上（自然到期、牛奶、被顶掉），就补扣 1 次并重新施加。
+     * 瞬间效果与「混沌祝福」随机的效果不写（没有稳定的追踪目标）。
+     */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Map<String, Long>>> APPLIED_UNTIL =
+            REGISTRY.register("applied_until", () -> DataComponentType.<Map<String, Long>>builder()
+                    .persistent(Codec.unboundedMap(Codec.STRING, Codec.LONG))
+                    .networkSynchronized(ByteBufCodecs.map(HashMap::new, ByteBufCodecs.STRING_UTF8, ByteBufCodecs.VAR_LONG))
+                    .build());
 }
