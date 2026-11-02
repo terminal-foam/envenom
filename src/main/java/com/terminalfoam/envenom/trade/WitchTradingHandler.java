@@ -8,6 +8,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Items;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
 import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
@@ -21,6 +22,7 @@ public final class WitchTradingHandler {
 
     @SubscribeEvent
     public static void onTarget(LivingChangeTargetEvent event) {
+        if (event.getEntity().level().isClientSide()) return;
         // Retain vanilla retaliation, but suppress unprovoked attacks on players (including raids).
         if (event.getEntity().getType() == EntityType.WITCH
                 && event.getNewAboutToBeSetTarget() instanceof Player player
@@ -35,16 +37,25 @@ public final class WitchTradingHandler {
                 || !(event.getTarget() instanceof Mob witch)
                 || event.getHand() != InteractionHand.MAIN_HAND
                 || event.getEntity().isSpectator() || event.getEntity().isSecondaryUseActive()) return;
-        event.setCanceled(true);
-        event.setCancellationResult(InteractionResult.SUCCESS);
+        // 命名牌 / 栓绳保留原版实体交互，不被交易拦截。
+        if (event.getItemStack().is(Items.NAME_TAG) || event.getItemStack().is(Items.LEAD)) return;
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
+
         WitchMerchant existing = SESSIONS.get(witch);
-        if (existing != null && existing.tick()) return; // Only one customer can own the stock at a time.
+        if (existing != null && existing.tick()) {
+            event.setCanceled(true);
+            event.setCancellationResult(InteractionResult.SUCCESS);
+            return; // Only one customer can own the stock at a time.
+        }
         SESSIONS.remove(witch);
+        if (!WitchMerchant.canTrade(witch, player)) return; // angry/hurt: leave vanilla interaction untouched
         WitchMerchant merchant = new WitchMerchant(witch);
-        if (!merchant.canTrade(player)) return;
         merchant.open(player);
-        if (merchant.getTradingPlayer() != null) SESSIONS.put(witch, merchant);
+        if (merchant.getTradingPlayer() != null) {
+            event.setCanceled(true);
+            event.setCancellationResult(InteractionResult.SUCCESS);
+            SESSIONS.put(witch, merchant);
+        }
     }
 
     @SubscribeEvent

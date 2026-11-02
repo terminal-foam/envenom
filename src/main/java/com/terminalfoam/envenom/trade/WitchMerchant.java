@@ -1,5 +1,6 @@
 package com.terminalfoam.envenom.trade;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.RegistryOps;
@@ -14,9 +15,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.trading.Merchant;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
+import org.slf4j.Logger;
 
 /** Server-side merchant bound to a real witch; vanilla handles payments and slot synchronization. */
 public final class WitchMerchant implements Merchant {
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     private static final String OFFERS = "envenom:witch_offers";
     private static final String RESTOCK = "envenom:witch_restock";
     private final Mob witch;
@@ -28,9 +32,16 @@ public final class WitchMerchant implements Merchant {
         this.witch = witch;
         var data = witch.getPersistentData();
         var ops = RegistryOps.create(NbtOps.INSTANCE, witch.registryAccess());
-        offers = data.contains(OFFERS)
-                ? MerchantOffers.CODEC.parse(ops, data.get(OFFERS)).getOrThrow()
-                : WitchTrades.create();
+        MerchantOffers parsed;
+        try {
+            parsed = data.contains(OFFERS)
+                    ? MerchantOffers.CODEC.parse(ops, data.get(OFFERS)).getOrThrow()
+                    : WitchTrades.create();
+        } catch (RuntimeException e) {
+            LOGGER.warn("Envenom: discarding unreadable witch offers on {}", witch, e);
+            parsed = WitchTrades.create();
+        }
+        offers = parsed;
         long now = witch.level().getGameTime();
         if (!data.contains(RESTOCK) || now - data.getLong(RESTOCK) >= 24000L) {
             offers.forEach(MerchantOffer::resetUses);
@@ -39,10 +50,14 @@ public final class WitchMerchant implements Merchant {
         save();
     }
 
-    public boolean canTrade(Player player) {
-        return witch.isAlive() && player.isAlive() && !player.isSpectator()
+    public static boolean canTrade(Mob witch, Player player) {
+        return witch.isAlive() && !witch.isRemoved() && player.isAlive() && !player.isSpectator()
                 && witch.level() == player.level() && witch.distanceToSqr(player) <= 16.0D
                 && witch.getTarget() == null && witch.hurtTime == 0;
+    }
+
+    public boolean canTrade(Player player) {
+        return canTrade(this.witch, player);
     }
 
     public void open(ServerPlayer player) {
@@ -82,8 +97,12 @@ public final class WitchMerchant implements Merchant {
     }
 
     private void save() {
-        witch.getPersistentData().put(OFFERS, MerchantOffers.CODEC
-                .encodeStart(RegistryOps.create(NbtOps.INSTANCE, witch.registryAccess()), offers).getOrThrow());
+        try {
+            witch.getPersistentData().put(OFFERS, MerchantOffers.CODEC
+                    .encodeStart(RegistryOps.create(NbtOps.INSTANCE, witch.registryAccess()), offers).getOrThrow());
+        } catch (RuntimeException e) {
+            LOGGER.warn("Envenom: failed to save witch offers on {}", witch, e);
+        }
     }
 
     @Override public void setTradingPlayer(Player player) { customer = player; }
