@@ -6,7 +6,8 @@
         "CakeEatMixin",
         "EnderDragonHurtMixin",
         "PoisonMixin",
-        "RegenerationMixin"
+        "RegenerationMixin",
+        "RaidMixin"
     ],
     "injectors": {
         "defaultRequire": 1

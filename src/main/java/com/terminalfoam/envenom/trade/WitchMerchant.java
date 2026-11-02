@@ -24,6 +24,7 @@ public final class WitchMerchant implements Merchant {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private static final String OFFERS = "envenom:witch_offers";
+    private static final String SELECTION = "envenom:witch_random_offers";
     private static final String RESTOCK = "envenom:witch_restock";
     private final Mob witch;
     private final MerchantOffers offers;
@@ -38,12 +39,13 @@ public final class WitchMerchant implements Merchant {
         try {
             parsed = data.contains(OFFERS)
                     ? MerchantOffers.CODEC.parse(ops, data.get(OFFERS)).getOrThrow()
-                    : WitchTrades.create();
+                    : WitchTrades.create(witch.getRandom());
         } catch (RuntimeException e) {
             LOGGER.warn("Envenom: discarding unreadable witch offers on {}", witch, e);
-            parsed = WitchTrades.create();
+            parsed = WitchTrades.create(witch.getRandom());
         }
-        offers = parsed;
+        offers = data.contains(SELECTION) ? parsed : WitchTrades.selectIfLegacy(parsed, witch.getRandom());
+        data.putBoolean(SELECTION, true);
         long now = witch.level().getGameTime();
         if (!data.contains(RESTOCK) || now - data.getLong(RESTOCK) >= 24000L) {
             offers.forEach(MerchantOffer::resetUses);

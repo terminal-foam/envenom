@@ -15,6 +15,11 @@ public final class EnvenomTestFunctions {
     }
 
     public static void bootstrap(Registry<Consumer<GameTestHelper>> registry) {
+        register(registry, "raid_waves_never_spawn_witches", EnvenomWitchGameTests::raidWavesNeverSpawnWitches);
+        register(registry, "witches_stay_outside_raids", EnvenomWitchGameTests::witchesStayOutsideRaids);
+        register(registry, "golems_ignore_witches", EnvenomWitchGameTests::golemsIgnoreWitches);
+        register(registry, "witch_legacy_catalogue_migrates_once", EnvenomWitchGameTests::witchLegacyCatalogueMigratesOnce);
+        register(registry, "witch_offers_are_varied", EnvenomWitchGameTests::witchOffersAreVaried);
         register(registry, "witch_menu_charges_and_returns_payment", EnvenomWitchGameTests::witchMenuChargesAndReturnsPayment);
         register(registry, "witch_stock_persists_and_restocks", EnvenomWitchGameTests::witchStockPersistsAndRestocks);
         register(registry, "witch_neutral_and_retaliates", EnvenomWitchGameTests::witchNeutralAndRetaliates);

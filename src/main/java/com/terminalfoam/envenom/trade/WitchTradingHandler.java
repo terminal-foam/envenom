@@ -6,11 +6,14 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.raid.Raider;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
@@ -23,11 +26,43 @@ public final class WitchTradingHandler {
     @SubscribeEvent
     public static void onTarget(LivingChangeTargetEvent event) {
         if (event.getEntity().level().isClientSide()) return;
+        if (event.getEntity().getType() == EntityType.IRON_GOLEM
+                && event.getNewAboutToBeSetTarget() != null
+                && event.getNewAboutToBeSetTarget().getType() == EntityType.WITCH) {
+            event.setNewAboutToBeSetTarget(null);
+            return;
+        }
         // Retain vanilla retaliation, but suppress unprovoked attacks on players (including raids).
         if (event.getEntity().getType() == EntityType.WITCH
                 && event.getNewAboutToBeSetTarget() instanceof Player player
                 && event.getEntity().getLastHurtByMob() != player) {
             event.setNewAboutToBeSetTarget(null);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onJoin(EntityJoinLevelEvent event) {
+        excludeFromRaids(event.getEntity());
+    }
+
+    @SubscribeEvent
+    public static void beforeTick(EntityTickEvent.Pre event) {
+        // Run before raider AI can recruit nearby mobs or act on a raid loaded from a save.
+        excludeFromRaids(event.getEntity());
+    }
+
+    private static void excludeFromRaids(Entity entity) {
+        if (entity.level().isClientSide() || entity.getType() != EntityType.WITCH
+                || !(entity instanceof Raider witch)) return;
+        witch.setCanJoinRaid(false);
+        var raid = witch.getCurrentRaid();
+        if (raid != null) {
+            // Keep the witch alive, but remove its contribution to the raid health/count.
+            raid.removeFromRaid(witch, true);
+            witch.setCurrentRaid(null);
+            witch.setWave(0);
+            witch.setTarget(null);
+            witch.getNavigation().stop();
         }
     }
 

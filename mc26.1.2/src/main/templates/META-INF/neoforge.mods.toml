@@ -4,6 +4,7 @@ license="${mod_license}"
 modId="${mod_id}"
 version="${mod_version}"
 displayName="${mod_name}"
+logoFile="envenom.png"
 authors="Terminal_Foam"
 description='''
 Envenom for Minecraft 26.1.2 (NeoForge ${neo_version}).
