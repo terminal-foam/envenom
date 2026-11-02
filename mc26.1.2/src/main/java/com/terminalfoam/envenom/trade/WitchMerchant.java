@@ -101,4 +101,6 @@ public final class WitchMerchant implements Merchant {
     @Override public boolean showProgressBar() { return false; }
     @Override public SoundEvent getNotifyTradeSound() { return SoundEvents.WITCH_CELEBRATE; }
     @Override public boolean isClientSide() { return witch.level().isClientSide(); }
+
+    @Override public boolean stillValid(Player player) { return customer == player && canTrade(player); }
 }
