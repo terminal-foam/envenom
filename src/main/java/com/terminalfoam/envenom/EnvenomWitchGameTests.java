@@ -228,7 +228,7 @@ public final class EnvenomWitchGameTests {
             regular.setAccessible(true);
             bonus.setAccessible(true);
             for (Difficulty difficulty : new Difficulty[]{Difficulty.EASY, Difficulty.NORMAL, Difficulty.HARD}) {
-                var instance = new DifficultyInstance(difficulty, 72000L, 1.0F, 1.0F);
+                var instance = new DifficultyInstance(difficulty, 72000L, 0L, 1.0F);
                 for (int wave = 1; wave <= 7; wave++) {
                     for (boolean extra : new boolean[]{false, true}) {
                         helper.assertTrue((int) regular.invoke(raid, witch, wave, extra) == 0,
