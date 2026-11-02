@@ -91,5 +91,6 @@
   "item.envenom.lingering_wind_charged_pack": "蓄风药包（滞留）",
   "item.envenom.lingering_weaving_pack": "盘丝药包（滞留）",
   "item.envenom.lingering_oozing_pack": "渗浆药包（滞留）",
-  "item.envenom.lingering_infested_pack": "虫噬药包（滞留）"
+  "item.envenom.lingering_infested_pack": "虫噬药包（滞留）",
+  "merchant.envenom.witch": "女巫药剂师"
 }

@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:function",
+  "environment": "minecraft:default",
+  "function": "envenom:witch_menu_charges_and_returns_payment",
+  "max_ticks": 200,
+  "setup_ticks": 0,
+  "required": true,
+  "structure": "envenom:empty"
+}

@@ -91,5 +91,6 @@
   "item.envenom.lingering_wind_charged_pack": "Wind Charged Potion Pack (Lingering)",
   "item.envenom.lingering_weaving_pack": "Weaving Potion Pack (Lingering)",
   "item.envenom.lingering_oozing_pack": "Oozing Potion Pack (Lingering)",
-  "item.envenom.lingering_infested_pack": "Infested Potion Pack (Lingering)"
+  "item.envenom.lingering_infested_pack": "Infested Potion Pack (Lingering)",
+  "merchant.envenom.witch": "Witch Apothecary"
 }

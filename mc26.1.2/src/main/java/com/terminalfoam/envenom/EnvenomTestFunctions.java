@@ -15,6 +15,9 @@ public final class EnvenomTestFunctions {
     }
 
     public static void bootstrap(Registry<Consumer<GameTestHelper>> registry) {
+        register(registry, "witch_menu_charges_and_returns_payment", EnvenomWitchGameTests::witchMenuChargesAndReturnsPayment);
+        register(registry, "witch_stock_persists_and_restocks", EnvenomWitchGameTests::witchStockPersistsAndRestocks);
+        register(registry, "witch_neutral_and_retaliates", EnvenomWitchGameTests::witchNeutralAndRetaliates);
         register(registry, "poison_intervals", EnvenomGameTests::poisonIntervals);
         register(registry, "regeneration_intervals", EnvenomGameTests::regenerationIntervals);
         register(registry, "poison_damage_vanilla_levels", EnvenomGameTests::poisonDamageVanillaLevels);
