@@ -3,6 +3,7 @@ package com.terminalfoam.envenom.handler;
 import com.terminalfoam.envenom.coating.Coating;
 import com.terminalfoam.envenom.coating.CoatingSlot;
 import com.terminalfoam.envenom.coating.EnvenomDataComponents;
+import com.terminalfoam.envenom.effect.EnvenomEffects;
 import com.terminalfoam.envenom.enchantment.EnvenomEnchantments;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -185,7 +186,7 @@ public class CoatingEffectHandler {
                if (target.level() instanceof ServerLevel serverLevel) {
                   target.hurtServer(serverLevel, target.damageSources().magic(), amount);
                }
-            } else {
+            } else if (!target.hasEffect(EnvenomEffects.NAUSEA)) {
                target.heal(amount);
             }
          }

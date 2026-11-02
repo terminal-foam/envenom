@@ -39,7 +39,12 @@ public final class WitchTradingHandler {
                 || event.getEntity().isSpectator() || event.getEntity().isSecondaryUseActive()) return;
         // 命名牌 / 栓绳保留原版实体交互，不被交易拦截。
         if (event.getItemStack().is(Items.NAME_TAG) || event.getItemStack().is(Items.LEAD)) return;
-        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            // 客户端也消费这次右键：否则拿喷溅药水右键女巫会“开店的同时把药水扔出去”。
+            event.setCanceled(true);
+            event.setCancellationResult(InteractionResult.SUCCESS);
+            return;
+        }
 
         WitchMerchant existing = SESSIONS.get(witch);
         if (existing != null && existing.tick()) {

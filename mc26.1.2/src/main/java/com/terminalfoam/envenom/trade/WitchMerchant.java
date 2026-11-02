@@ -9,8 +9,10 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MerchantMenu;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.trading.Merchant;
 import net.minecraft.world.item.trading.MerchantOffer;
@@ -63,12 +65,7 @@ public final class WitchMerchant implements Merchant {
     public void open(ServerPlayer player) {
         setTradingPlayer(player);
         var id = player.openMenu(new SimpleMenuProvider((containerId, inventory, ignored) -> {
-            menu = new MerchantMenu(containerId, inventory, this) {
-                @Override
-                public boolean stillValid(Player viewer) {
-                    return customer == viewer && canTrade(viewer);
-                }
-            };
+            menu = createMenu(containerId, inventory);
             return menu;
         }, Component.translatable("merchant.envenom.witch")));
         if (id.isPresent()) {
@@ -77,6 +74,47 @@ public final class WitchMerchant implements Merchant {
         } else {
             setTradingPlayer(null);
         }
+    }
+
+    /**
+     * 原版 MerchantMenu.playTradeSound() 会把 trader 强转成 Entity；本模组的商人挂在女巫身上、
+     * 不是实体，所以快捷交易（Shift 点击结果槽）会 ClassCastException。这里接管结果槽的快捷移动，
+     * 跳过那段强转；音效已经由 notifyTrade() 里的 witch.playSound 播放。
+     */
+    public MerchantMenu createMenu(int containerId, Inventory inventory) {
+        return new MerchantMenu(containerId, inventory, this) {
+            @Override
+            public boolean stillValid(Player viewer) {
+                return customer == viewer && canTrade(viewer);
+            }
+
+            @Override
+            public ItemStack quickMoveStack(Player player, int index) {
+                if (index != 2) {
+                    return super.quickMoveStack(player, index);
+                }
+                Slot slot = this.slots.get(2);
+                if (!slot.hasItem()) {
+                    return ItemStack.EMPTY;
+                }
+                ItemStack stack = slot.getItem();
+                ItemStack copy = stack.copy();
+                if (!this.moveItemStackTo(stack, 3, 39, true)) {
+                    return ItemStack.EMPTY;
+                }
+                slot.onQuickCraft(stack, copy);
+                if (stack.isEmpty()) {
+                    slot.setByPlayer(ItemStack.EMPTY);
+                } else {
+                    slot.setChanged();
+                }
+                if (stack.getCount() == copy.getCount()) {
+                    return ItemStack.EMPTY;
+                }
+                slot.onTake(player, stack);
+                return copy;
+            }
+        };
     }
 
     public boolean tick() {

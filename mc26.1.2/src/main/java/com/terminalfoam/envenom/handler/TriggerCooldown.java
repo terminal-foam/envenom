@@ -13,8 +13,8 @@ import net.minecraft.world.item.ItemStack;
  * {@link EnvenomDataComponents#TRIGGER_COOLDOWNS} 组件里。
  * 调用方用 {@link #read} 取出可变副本，触发时改它，最后用 {@link #write} 写回。
  *
- * <p>键 = 效果 id（不含槽位）：一件物品只可能被一种槽位使用
- * （剑柄看主/副手，盔甲看装备槽），所以同一物品上的键只需区分效果。
+ * <p>键 = 效果 id + 涂层类型（普通/滞留）：一件物品只可能被一种槽位使用
+ * （剑柄看主/副手，盔甲看装备槽），所以同一物品上的键只需区分效果和类型。
  *
  * <p><b>旧实现的问题</b>（本档之前）：冷却存在 {@code Map<UUID, Map<String, Long>>} 静态表里，
  * 键是"槽位 + 效果 id"。那套写法会因服务器重启丢失、联机/单机切换串味
@@ -32,7 +32,9 @@ final class TriggerCooldown {
     * <p>不用列表下标：涂层被消耗移除后下标会前移，冷却就会记到别的涂层头上。
     */
    static String key(Coating coating) {
-      return coating.effect().unwrapKey().map(k -> k.identifier().toString()).orElseGet(() -> coating.effect().value().getDescriptionId());
+      String effect = coating.effect().unwrapKey().map(k -> k.identifier().toString()).orElseGet(() -> coating.effect().value().getDescriptionId());
+      // 普通与滞留涂层分开记账，否则同一效果的两层会互相顶掉冷却。
+      return effect + (coating.lingering() ? "|lingering" : "|normal");
    }
 
    /**
