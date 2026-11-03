@@ -15,6 +15,7 @@ public final class EnvenomTestFunctions {
     }
 
     public static void bootstrap(Registry<Consumer<GameTestHelper>> registry) {
+        register(registry, "bell_highlights_raiders_but_not_witches", EnvenomWitchGameTests::bellHighlightsRaidersButNotWitches);
         register(registry, "raid_waves_never_spawn_witches", EnvenomWitchGameTests::raidWavesNeverSpawnWitches);
         register(registry, "witches_stay_outside_raids", EnvenomWitchGameTests::witchesStayOutsideRaids);
         register(registry, "golems_ignore_witches", EnvenomWitchGameTests::golemsIgnoreWitches);

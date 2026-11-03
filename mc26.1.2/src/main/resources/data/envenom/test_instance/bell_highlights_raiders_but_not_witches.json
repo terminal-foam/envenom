@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:function",
+  "environment": "minecraft:default",
+  "function": "envenom:bell_highlights_raiders_but_not_witches",
+  "max_ticks": 200,
+  "setup_ticks": 0,
+  "required": true,
+  "structure": "envenom:empty"
+}

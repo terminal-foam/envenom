@@ -8,6 +8,12 @@ import java.util.HashSet;
 import java.util.Set;
 import net.minecraft.util.RandomSource;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BellBlockEntity;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.entity.raid.Raid;
@@ -246,6 +252,31 @@ public final class EnvenomWitchGameTests {
             throw new AssertionError("Raid methods must match the registered mixin", e);
         }
         helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void bellHighlightsRaidersButNotWitches(GameTestHelper helper) {
+        var witch = helper.spawn(EntityType.WITCH, 1, 2, 2);
+        var pillager = helper.spawn(EntityType.PILLAGER, 2, 2, 2);
+        witch.setNoAi(true);
+        pillager.setNoAi(true);
+        helper.assertTrue(!witch.getType().is(EntityTypeTags.RAIDERS), "witch must be removed from the raider tag");
+        helper.assertTrue(pillager.getType().is(EntityTypeTags.RAIDERS), "pillagers must remain in the raider tag");
+        BlockPos pos = new BlockPos(1, 2, 1);
+        helper.setBlock(pos.below(), Blocks.STONE);
+        helper.setBlock(pos, Blocks.BELL);
+        var bell = (BellBlockEntity) helper.getLevel().getBlockEntity(helper.absolutePos(pos));
+        helper.assertTrue(bell != null, "bell block entity must exist");
+        // Exercise the real bell ticker and resonance, rather than adding glowing directly.
+        bell.triggerEvent(1, Direction.NORTH.get3DDataValue());
+        helper.runAfterDelay(50L, () -> {
+            helper.assertTrue(pillager.hasEffect(MobEffects.GLOWING), "bell must still reveal other raiders");
+            helper.assertTrue(!witch.hasEffect(MobEffects.GLOWING), "bell must not reveal witches");
+            helper.assertTrue(witch.addEffect(new MobEffectInstance(MobEffects.GLOWING, 200)),
+                    "glowing from other sources must still apply to witches");
+            helper.assertTrue(witch.hasEffect(MobEffects.GLOWING), "ordinary glowing must remain active");
+            helper.succeed();
+        });
     }
 
     private static void assertSameOffers(GameTestHelper helper, MerchantOffers expected, MerchantOffers actual) {
