@@ -11,6 +11,17 @@
 
   "effect.envenom.nausea": "Nausea",
   "effect.envenom.vulnerability": "Vulnerability",
+  "effect.envenom.milk": "Milk",
+
+  "item.envenom.milk_bottle": "Milk Bottle",
+  "item.minecraft.potion.effect.milk": "Milk Bottle",
+  "item.minecraft.splash_potion.effect.milk": "Splash Milk Bottle",
+  "item.minecraft.lingering_potion.effect.milk": "Lingering Milk Bottle",
+  "item.minecraft.tipped_arrow.effect.milk": "Arrow of Milk",
+  "item.minecraft.potion.effect.decay": "Potion of Decay",
+  "item.minecraft.splash_potion.effect.decay": "Splash Potion of Decay",
+  "item.minecraft.lingering_potion.effect.decay": "Lingering Potion of Decay",
+  "item.minecraft.tipped_arrow.effect.decay": "Arrow of Decay",
 
   "item.minecraft.potion.effect.swift_as_a_hare": "Potion of Swift as a Hare",
   "item.minecraft.splash_potion.effect.swift_as_a_hare": "Splash Potion of Swift as a Hare",

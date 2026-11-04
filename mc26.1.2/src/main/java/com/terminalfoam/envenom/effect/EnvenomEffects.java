@@ -18,6 +18,10 @@ public final class EnvenomEffects {
     public static final DeferredHolder<MobEffect, VulnerabilityEffect> VULNERABILITY =
             EFFECTS.register("vulnerability", VulnerabilityEffect::new);
 
+    /** 牛奶：瞬间清除全部效果。 */
+    public static final DeferredHolder<MobEffect, MilkEffect> MILK =
+            EFFECTS.register("milk", MilkEffect::new);
+
     private EnvenomEffects() {
     }
 }

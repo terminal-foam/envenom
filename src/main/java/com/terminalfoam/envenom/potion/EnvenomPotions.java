@@ -58,6 +58,16 @@ public final class EnvenomPotions {
                     new MobEffectInstance(MobEffects.MOVEMENT_SPEED, BASE_DURATION, 5),
                     new MobEffectInstance(EnvenomEffects.VULNERABILITY, BASE_DURATION, 3)));
 
+    /** 牛奶瓶：瞬间清除全部效果。喷溅 / 滞留型由原版火药 / 龙息容器配方自动派生。 */
+    public static final DeferredHolder<Potion, Potion> MILK = POTIONS.register(
+            "milk",
+            () -> new Potion(new MobEffectInstance(EnvenomEffects.MILK, 1, 0)));
+
+    /** 基岩版「衰变」：凋零 II，40 秒（喷溅同长；滞留云按原版缩为 1/4，即 10 秒）。 */
+    public static final DeferredHolder<Potion, Potion> DECAY = POTIONS.register(
+            "decay",
+            () -> new Potion(new MobEffectInstance(MobEffects.WITHER, 800, 1)));
+
     private EnvenomPotions() {
     }
 
@@ -73,6 +83,12 @@ public final class EnvenomPotions {
         // 腐化之后仍可按原版路径延长 / 强化。
         builder.addMix(SWIFT_AS_A_HARE, Items.REDSTONE, LONG_SWIFT_AS_A_HARE);
         builder.addMix(SWIFT_AS_A_HARE, Items.GLOWSTONE_DUST, STRONG_SWIFT_AS_A_HARE);
+
+        // 基岩版衰变：粗制药水 + 凋零玫瑰 → 凋零 II。喷溅 / 滞留 / 药箭沿用原版派生。
+        builder.addMix(Potions.AWKWARD, Items.WITHER_ROSE, DECAY);
+
+        // 牛奶瓶 + 火药 → 喷溅型牛奶瓶；滞留型再由原版「喷溅 + 龙息」派生。
+        builder.addRecipe(new MilkSplashRecipe());
 
         // 水瓶 + 药包 → 对应药水（基础 / 延长 / 强化）；喷溅 / 滞留包走自定义容器配方。
         for (PotionPackItem pack : EnvenomItems.packs()) {
@@ -113,6 +129,27 @@ public final class EnvenomPotions {
             if (this.isInput(input) && this.isIngredient(ingredient)) {
                 Item bottle = this.pack.splash() ? Items.SPLASH_POTION : Items.LINGERING_POTION;
                 return PotionContents.createItemStack(bottle, this.pack.potion());
+            }
+            return ItemStack.EMPTY;
+        }
+    }
+
+    /** 牛奶瓶 + 火药 → 喷溅型牛奶瓶。原版容器配方只认药水瓶，这里补上自定义瓶子。 */
+    private static final class MilkSplashRecipe implements IBrewingRecipe {
+        @Override
+        public boolean isInput(ItemStack input) {
+            return input.is(EnvenomItems.MILK_BOTTLE.get());
+        }
+
+        @Override
+        public boolean isIngredient(ItemStack ingredient) {
+            return ingredient.is(Items.GUNPOWDER);
+        }
+
+        @Override
+        public ItemStack getOutput(ItemStack input, ItemStack ingredient) {
+            if (this.isInput(input) && this.isIngredient(ingredient)) {
+                return PotionContents.createItemStack(Items.SPLASH_POTION, MILK);
             }
             return ItemStack.EMPTY;
         }

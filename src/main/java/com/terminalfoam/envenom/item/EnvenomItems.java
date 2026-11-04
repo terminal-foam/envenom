@@ -29,6 +29,10 @@ public final class EnvenomItems {
 
     private static final List<DeferredItem<PotionPackItem>> PACKS = new ArrayList<>();
 
+    /** 牛奶瓶：牛奶桶 + 3 玻璃瓶 → 3 个，喝完返还玻璃瓶。 */
+    public static final DeferredItem<MilkBottleItem> MILK_BOTTLE =
+            ITEMS.registerItem("milk_bottle", MilkBottleItem::new, new Item.Properties().stacksTo(16));
+
     public static final DeferredItem<PotionPackItem> SWIFTNESS_PACK =
             pack("swiftness_pack", Potions.SWIFTNESS);
     public static final DeferredItem<PotionPackItem> LEAPING_PACK =
@@ -130,6 +134,9 @@ public final class EnvenomItems {
     public static void addToCreativeTabs(BuildCreativeModeTabContentsEvent event) {
         // 只需添加药包；三种瓶型里的自制药水由原版 CreativeModeTabs 自动遍历药水注册表添加，
         // 这里再加一遍会在创造模式栏/搜索里出现重复条目。
+        if (event.getTabKey() == CreativeModeTabs.FOOD_AND_DRINKS) {
+            event.accept(MILK_BOTTLE);
+        }
         if (event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
             for (DeferredItem<PotionPackItem> pack : PACKS) {
                 event.accept(pack);

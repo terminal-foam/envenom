@@ -11,6 +11,17 @@
 
   "effect.envenom.nausea": "反胃",
   "effect.envenom.vulnerability": "易伤",
+  "effect.envenom.milk": "牛奶",
+
+  "item.envenom.milk_bottle": "牛奶瓶",
+  "item.minecraft.potion.effect.milk": "牛奶瓶",
+  "item.minecraft.splash_potion.effect.milk": "喷溅型牛奶瓶",
+  "item.minecraft.lingering_potion.effect.milk": "滞留型牛奶瓶",
+  "item.minecraft.tipped_arrow.effect.milk": "牛奶之箭",
+  "item.minecraft.potion.effect.decay": "凋零药水",
+  "item.minecraft.splash_potion.effect.decay": "喷溅型凋零药水",
+  "item.minecraft.lingering_potion.effect.decay": "滞留型凋零药水",
+  "item.minecraft.tipped_arrow.effect.decay": "凋零药水箭",
 
   "item.minecraft.potion.effect.swift_as_a_hare": "动若脱兔药水",
   "item.minecraft.splash_potion.effect.swift_as_a_hare": "喷溅型动若脱兔药水",
