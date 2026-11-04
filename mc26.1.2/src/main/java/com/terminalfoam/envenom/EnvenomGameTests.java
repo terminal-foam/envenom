@@ -257,6 +257,52 @@ public final class EnvenomGameTests {
         }
     }
 
+    public static void witherIntervals(GameTestHelper helper) {
+        MobEffect wither = MobEffects.WITHER.value();
+        helper.assertTrue(wither.shouldApplyEffectTickThisTick(40, 0), "wither I retains its 40-tick interval");
+        helper.assertTrue(!wither.shouldApplyEffectTickThisTick(10, 0), "wither I is not accelerated");
+        for (int amp : new int[]{1, 2, 3, 4, 9, 20, 255}) {
+            helper.assertTrue(wither.shouldApplyEffectTickThisTick(10, amp), "higher wither ticks every ten ticks");
+            helper.assertTrue(!wither.shouldApplyEffectTickThisTick(9, amp), "higher wither must not tick early");
+        }
+        helper.succeed();
+    }
+
+    public static void witherDamageCurveAndType(GameTestHelper helper) {
+        var cow = helper.spawn(EntityType.COW, 1, 2, 1);
+        cow.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(200.0);
+        int[] amps = {0, 1, 2, 3, 4, 9, 20};
+        float[] expected = {1.0F, 10.0F / 6.0F, 20.0F / 6.0F, 10.0F, 12.4F, 24.4F, 50.8F};
+        for (int i = 0; i < amps.length; i++) {
+            cow.setHealth(200.0F);
+            cow.invulnerableTime = 0;
+            MobEffects.WITHER.value().applyEffectTick(helper.getLevel(), cow, amps[i]);
+            helper.assertTrue(Math.abs((200.0F - cow.getHealth()) - expected[i]) < EPS,
+                    "wither damage must match the requested curve at amplifier " + amps[i]);
+            helper.assertTrue(cow.getLastDamageSource() != null
+                    && cow.getLastDamageSource().is(net.minecraft.world.damagesource.DamageTypes.WITHER),
+                    "wither pulses must preserve minecraft:wither damage");
+        }
+        helper.succeed();
+    }
+
+    public static void witherKillsAndDamagesUndead(GameTestHelper helper) {
+        var cow = helper.spawn(EntityType.COW, 1, 2, 1);
+        cow.setHealth(1.0F);
+        MobEffects.WITHER.value().applyEffectTick(helper.getLevel(), cow, 1);
+        helper.assertTrue(cow.isDeadOrDying(), "wither II must kill rather than clamp to one HP");
+        var zombie = helper.spawn(EntityType.ZOMBIE, 2, 2, 1);
+        helper.assertTrue(zombie.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.WITHER, 200, 1)),
+                "ordinary undead remain susceptible to wither");
+        float before = zombie.getHealth();
+        MobEffects.WITHER.value().applyEffectTick(helper.getLevel(), zombie, 1);
+        helper.assertTrue(zombie.getHealth() < before, "wither damages undead");
+        var boss = helper.spawn(EntityType.WITHER, 1, 2, 3);
+        helper.assertTrue(!boss.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.WITHER, 200, 1)),
+                "ordinary wither application must not bypass the wither boss's immunity");
+        helper.succeed();
+    }
+
     // ── helpers ──────────────────────────────────────────────
     private static Cow spawnCow(GameTestHelper helper, float health) {
         Cow cow = helper.spawn(EntityType.COW, 1, 2, 1);

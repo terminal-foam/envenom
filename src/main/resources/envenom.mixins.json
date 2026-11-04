@@ -9,6 +9,7 @@
         "EnderDragonHurtMixin",
         "LivingEntityInjectionMixin",
         "PoisonMixin",
+        "WitherMixin",
         "RegenerationMixin",
         "RaidMixin"
     ],

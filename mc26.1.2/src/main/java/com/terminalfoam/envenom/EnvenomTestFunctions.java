@@ -15,6 +15,9 @@ public final class EnvenomTestFunctions {
     }
 
     public static void bootstrap(Registry<Consumer<GameTestHelper>> registry) {
+        register(registry, "wither_intervals", EnvenomGameTests::witherIntervals);
+        register(registry, "wither_damage_curve_and_type", EnvenomGameTests::witherDamageCurveAndType);
+        register(registry, "wither_kills_and_damages_undead", EnvenomGameTests::witherKillsAndDamagesUndead);
         register(registry, "milk_has_no_status_effect", EnvenomMilkGameTests::milkHasNoStatusEffect);
         register(registry, "milk_splash_clears_effects", EnvenomMilkGameTests::milkSplashClearsEffects);
         register(registry, "milk_cloud_clears_repeatedly", EnvenomMilkGameTests::milkCloudClearsRepeatedly);
