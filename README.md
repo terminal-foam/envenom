@@ -36,8 +36,10 @@ NeoForge 药水涂装模组：把药水涂在武器和盔甲上，在攻击、�
 | 粘滞（Sticky） | 消耗次数时有概率不扣 |
 | 强化（Amplification） | 提高涂层效果等级 |
 | 叠加（Stacking） | 命中时概率把目标身上的负面效果再抬一级 |
-| 注射（Injection） | 目标拒绝效果时强制注入 |
+| 注射（Injection） | 剑刃命中时绕过原版及模组生物的药水免疫，强制加入效果 |
 | 薛定谔的祝福（Schrödinger's Blessing） | 触发时随机换成另一种效果 |
+
+注射不设模组、生物或亡灵白名单，覆盖 `canBeAffected`、`MobEffectEvent.Applicable` 拒绝，以及重写 `addEffect` / `forceAddEffect` 的免疫。只有命中时带注射附魔的剑刃涂层走此入口；普通药水保留原来的免疫规则。反胃仍会阻止有益效果。注射保留原版效果合并、后备效果、属性更新和同步，不绕过生物自身的伤害处理；其他模组主动清除效果或不使用原版效果系统时，仍可能需要专门兼容。
 
 附魔通过 `data/envenom/enchantment/*.json` 注册，可在附魔台/战利品中获得。
 

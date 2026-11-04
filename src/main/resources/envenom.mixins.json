@@ -5,6 +5,7 @@
     "mixins": [
         "CakeEatMixin",
         "EnderDragonHurtMixin",
+        "LivingEntityInjectionMixin",
         "PoisonMixin",
         "RegenerationMixin",
         "RaidMixin"

@@ -7,7 +7,6 @@ import com.terminalfoam.envenom.handler.CoatingApplicationHandler;
 import com.terminalfoam.envenom.handler.CoatingEffectHandler;
 import com.terminalfoam.envenom.handler.CoatingTooltipHandler;
 import com.terminalfoam.envenom.handler.EnvenomEffectHandler;
-import com.terminalfoam.envenom.handler.InjectionHandler;
 import com.terminalfoam.envenom.item.EnvenomItems;
 import com.terminalfoam.envenom.trade.WitchTradingHandler;
 import com.terminalfoam.envenom.potion.EnvenomPotions;
@@ -34,7 +33,6 @@ public class Envenom {
         NeoForge.EVENT_BUS.register(CoatingApplicationHandler.class);
         NeoForge.EVENT_BUS.register(CoatingEffectHandler.class);
         NeoForge.EVENT_BUS.register(CoatingTooltipHandler.class);
-        NeoForge.EVENT_BUS.register(InjectionHandler.class);
         NeoForge.EVENT_BUS.register(EnvenomEffectHandler.class);
         NeoForge.EVENT_BUS.register(EnvenomPotions.class);
         NeoForge.EVENT_BUS.register(WitchTradingHandler.class);

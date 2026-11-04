@@ -6,6 +6,7 @@
         "BuiltinTestFunctionsMixin",
         "CakeEatMixin",
         "EnderDragonHurtMixin",
+        "LivingEntityInjectionMixin",
         "PoisonMixin",
         "RegenerationMixin",
         "RaidMixin"

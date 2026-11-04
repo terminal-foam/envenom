@@ -162,7 +162,7 @@ public class CoatingEffectHandler {
     * 三处共用同一个原语，才不会再次跑偏。
     *
     * @param source         效果来源实体；被动槽位（自己给自己）传 {@code null}
-    * @param forceInjection 正门被拒时是否用 {@code forceAddEffect} 强塞（仅剑刃的注射附魔会开）
+    * @param forceInjection 是否走通用注射入口（仅命中时带注射附魔的剑刃涂层会开）
     * @param power          剑刃的承诺度强度（0.25~1）；剑柄/盔甲固定 1.0
     */
    private static void applyCoatingEffect(
@@ -210,57 +210,13 @@ public class CoatingEffectHandler {
       }
    }
 
-   /**
-    * 施加效果；正门办不到时，若开了注射则用 {@code forceAddEffect} 绕过硬编码拒绝。
-    *
-    * <p><b>⚠️ force 必须配"不得降级"判据 —— 这一条曾经被我错误地去掉过。</b>
-    *
-    * <p>{@code addEffect} 返回 false 有<b>三个</b>互相独立的原因：
-    * <ol>
-    *   <li><b>免疫</b> —— {@code canMobEffectBeApplied} / {@code canBeAffected} 为假</li>
-    *   <li><b>{@code update} 认为无需变更</b> —— 包括"等级更低但时长更长"那一格：
-    *       原版会**建好备胎链然后返回 false**（动了东西却报 false）</li>
-    *   <li><b>实体硬编码拒绝</b> —— 末影龙 / 凋灵无条件覆写 {@code addEffect} 返回 false</li>
-    * </ol>
-    *
-    * <p>原因 ② 在<b>普通生物上完全可达</b>。而 {@code forceAddEffect} 是
-    * {@code activeEffects.put(...)} —— <b>整体替换，连 {@code hiddenEffect} 一起丢</b>。
-    * 所以无条件 force 会造成：
-    * <pre>
-    *   目标：中毒 II 432t   ←  涂层：中毒 I 900t（带注射）
-    *   addEffect → update 建备胎链、返回 false
-    *   → forceAddEffect →【目标变成中毒 I 900t，刚建的备胎链一起没了】
-    *   而原本应当是：保留中毒 II，把中毒 I 存进备胎链（E 档的设计目的）
-    * </pre>
-    *
-    * <p><b>判据：只在"正门办不到，且新的确实更好或目标压根没有"时才强制。</b>
-    * 三种情况下顺其自然 ——
-    * <ul>
-    *   <li>目标没有该效果 ⇒ 强制（这正是注射要打通的场景：末影龙 / 凋灵）</li>
-    *   <li>新的等级更高，或同级但时长更长 ⇒ 强制（确实是升级）</li>
-    *   <li>否则（新的更弱）⇒ <b>什么都不做</b>，让 {@code update} 已经建好的备胎链留着</li>
-    * </ul>
-    *
-    * <p><b>⚠️ 切勿</b>改成 {@code && target.canBeAffected(instance)}：那个方法对末影龙恒返回
-    * true（它不在任何免疫标签内，拒绝来自硬编码覆写的 {@code addEffect}），
-    * 加上去会让 {@code forceAddEffect} 永不执行、<b>注射附魔彻底失效</b>。
-    */
+   /** Only the injection hit uses the immunity-bypassing insertion path. */
    private static void addEffectOrInject(LivingEntity target, MobEffectInstance instance, @Nullable Entity source, boolean forceInjection) {
-      if (target.addEffect(instance, source)) {
-         return;
+      if (forceInjection) {
+         InjectionHandler.apply(target, instance, source);
+      } else {
+         target.addEffect(instance, source);
       }
-      if (!forceInjection) {
-         return;
-      }
-
-      MobEffectInstance existing = target.getEffect(instance.getEffect());
-      if (existing == null
-            || instance.getAmplifier() > existing.getAmplifier()
-            || (instance.getAmplifier() == existing.getAmplifier()
-                && EffectOutcome.isLonger(instance, existing))) {
-         target.forceAddEffect(instance, source);
-      }
-      // else：新的更弱 ⇒ 不动。update 已经处理过备胎链（若该建的话），替换只会降级 + 毁链。
    }
 
    /**

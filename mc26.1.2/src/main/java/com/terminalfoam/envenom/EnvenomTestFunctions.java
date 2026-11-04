@@ -15,6 +15,10 @@ public final class EnvenomTestFunctions {
     }
 
     public static void bootstrap(Registry<Consumer<GameTestHelper>> registry) {
+        register(registry, "injection_bypasses_entity_overrides", EnvenomInjectionGameTests::injectionBypassesEntityOverrides);
+        register(registry, "injection_bypasses_applicable_veto", EnvenomInjectionGameTests::injectionBypassesApplicableVeto);
+        register(registry, "injection_preserves_attributes_and_hidden_effects", EnvenomInjectionGameTests::injectionPreservesAttributesAndHiddenEffects);
+        register(registry, "injection_respects_nausea_and_ordinary_effects", EnvenomInjectionGameTests::injectionRespectsNauseaAndOrdinaryEffects);
         register(registry, "bell_highlights_raiders_but_not_witches", EnvenomWitchGameTests::bellHighlightsRaidersButNotWitches);
         register(registry, "raid_waves_never_spawn_witches", EnvenomWitchGameTests::raidWavesNeverSpawnWitches);
         register(registry, "witches_stay_outside_raids", EnvenomWitchGameTests::witchesStayOutsideRaids);
