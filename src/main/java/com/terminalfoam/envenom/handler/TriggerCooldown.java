@@ -40,8 +40,8 @@ final class TriggerCooldown {
    /**
     * 取出该物品的冷却表**可变副本**（组件里存的是不可变的）。
     *
-    * <p>没有记录时返回空表 —— 于是上次触发时间取 0，等价于"很久以前"，
-    * 新涂的涂层会立刻触发一次。
+    * <p>没有记录时返回空表；冷却判定先检查键是否存在，让新涂层立即触发。
+    * 时间戳 0 是有效的首次触发时间，不能同时当作“没有记录”的标记。
     */
    static Map<String, Long> read(ItemStack stack) {
       return new HashMap<>(stack.getOrDefault(EnvenomDataComponents.TRIGGER_COOLDOWNS, Map.of()));

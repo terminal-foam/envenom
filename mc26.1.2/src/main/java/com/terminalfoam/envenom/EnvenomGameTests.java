@@ -152,6 +152,111 @@ public final class EnvenomGameTests {
         });
     }
 
+    public static void coatingInteractionsConsumeClick(GameTestHelper helper) {
+        var player = helper.makeMockServerPlayerInLevel();
+        ItemStack sword = new ItemStack(Items.IRON_SWORD);
+        player.setItemInHand(InteractionHand.MAIN_HAND, sword);
+        player.setItemInHand(InteractionHand.OFF_HAND,
+                PotionContents.createItemStack(Items.POTION, Potions.POISON));
+        var coat = new PlayerInteractEvent.RightClickItem(player, InteractionHand.MAIN_HAND);
+        NeoForge.EVENT_BUS.post(coat);
+        helper.assertTrue(coat.isCanceled() && coat.getCancellationResult().consumesAction(),
+                "coating must stop the client from trying the other hand");
+        helper.assertTrue(player.getOffhandItem().is(Items.GLASS_BOTTLE), "one potion returns one bottle");
+
+        Coating poison = sword.get(EnvenomDataComponents.COATINGS).get(0);
+        Coating vision = new Coating(MobEffects.NIGHT_VISION, 0, 600, 10, CoatingSlot.BLADE, false);
+        sword.set(EnvenomDataComponents.COATINGS, List.of(poison, vision));
+        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.HONEY_BOTTLE, 2));
+        var honey = new PlayerInteractEvent.RightClickItem(player, InteractionHand.MAIN_HAND);
+        NeoForge.EVENT_BUS.post(honey);
+        helper.assertTrue(honey.isCanceled() && honey.getCancellationResult().consumesAction(),
+                "cleaning must stop the client from processing a second honey bottle");
+        helper.assertTrue(player.getOffhandItem().is(Items.HONEY_BOTTLE)
+                && player.getOffhandItem().getCount() == 1, "cleaning consumes only one honey bottle");
+        helper.assertTrue(player.getInventory().countItem(Items.GLASS_BOTTLE) == 1,
+                "cleaning returns exactly one bottle");
+        helper.assertTrue(sword.get(EnvenomDataComponents.COATINGS).equals(List.of(vision)),
+                "honey removes harmful coatings and keeps beneficial ones");
+
+        sword.set(EnvenomDataComponents.COATINGS, List.of(poison, vision));
+        player.setItemInHand(InteractionHand.OFF_HAND,
+                PotionContents.createItemStack(Items.POTION, Potions.WATER));
+        var water = new PlayerInteractEvent.RightClickItem(player, InteractionHand.MAIN_HAND);
+        NeoForge.EVENT_BUS.post(water);
+        helper.assertTrue(water.getCancellationResult().consumesAction(), "water cleaning consumes the click");
+        helper.assertTrue(sword.get(EnvenomDataComponents.COATINGS).equals(List.of(poison)),
+                "one water bottle removes exactly one coating");
+        helper.assertTrue(player.getOffhandItem().is(Items.GLASS_BOTTLE), "water returns its bottle");
+        helper.succeed();
+    }
+
+    public static void coatingRefillPreservesLongerDuration(GameTestHelper helper) {
+        var player = helper.makeMockServerPlayerInLevel();
+        ItemStack sword = new ItemStack(Items.IRON_SWORD);
+        player.setItemInHand(InteractionHand.MAIN_HAND, sword);
+        sword.set(EnvenomDataComponents.COATINGS,
+                List.of(new Coating(MobEffects.POISON, 0, 900, 1, CoatingSlot.BLADE, false)));
+        player.setItemInHand(InteractionHand.OFF_HAND,
+                PotionContents.createItemStack(Items.POTION, Potions.LONG_POISON));
+        NeoForge.EVENT_BUS.post(new PlayerInteractEvent.RightClickItem(player, InteractionHand.MAIN_HAND));
+        Coating extended = sword.get(EnvenomDataComponents.COATINGS).get(0);
+        helper.assertTrue(extended.durationTicks() == Potions.LONG_POISON.value().getEffects().get(0).getDuration(),
+                "a long potion must extend the same-level coating");
+        helper.assertTrue(extended.remainingUses() == com.terminalfoam.envenom.config.EnvenomConfig.defaultUsesNormal,
+                "extending must also replenish coating uses");
+        player.setItemInHand(InteractionHand.OFF_HAND,
+                PotionContents.createItemStack(Items.POTION, Potions.POISON));
+        NeoForge.EVENT_BUS.post(new PlayerInteractEvent.RightClickItem(player, InteractionHand.MAIN_HAND));
+        helper.assertTrue(sword.get(EnvenomDataComponents.COATINGS).get(0).durationTicks() == extended.durationTicks(),
+                "a shorter refill must not shorten the coating");
+        sword.set(EnvenomDataComponents.COATINGS,
+                List.of(new Coating(MobEffects.POISON, 0, -1, 1, CoatingSlot.BLADE, false)));
+        player.setItemInHand(InteractionHand.OFF_HAND,
+                PotionContents.createItemStack(Items.POTION, Potions.POISON));
+        NeoForge.EVENT_BUS.post(new PlayerInteractEvent.RightClickItem(player, InteractionHand.MAIN_HAND));
+        helper.assertTrue(sword.get(EnvenomDataComponents.COATINGS).get(0).durationTicks() == -1,
+                "a refill must preserve infinite duration");
+        helper.succeed();
+    }
+
+    public static void freshPassiveCoatingsTriggerAtTimeZero(GameTestHelper helper) {
+        var player = helper.makeMockServerPlayerInLevel();
+        // Pass controlled game times without changing the shared world's clock.
+        for (CoatingSlot slot : new CoatingSlot[]{CoatingSlot.HILT, CoatingSlot.ARMOR}) {
+            ItemStack stack = new ItemStack(slot == CoatingSlot.HILT ? Items.IRON_SWORD : Items.IRON_CHESTPLATE);
+            stack.set(EnvenomDataComponents.COATINGS,
+                    List.of(new Coating(MobEffects.NIGHT_VISION, 0, 1200, 10, slot, false)));
+            player.setItemInHand(InteractionHand.MAIN_HAND, stack);
+            player.removeEffect(MobEffects.NIGHT_VISION);
+            tickPassiveCoating(player, stack, slot, 0L);
+            helper.assertTrue(player.hasEffect(MobEffects.NIGHT_VISION), "fresh coating must apply at time zero");
+            helper.assertTrue(stack.get(EnvenomDataComponents.COATINGS).get(0).remainingUses() == 9,
+                    "first trigger consumes one use");
+            tickPassiveCoating(player, stack, slot, 599L);
+            helper.assertTrue(stack.get(EnvenomDataComponents.COATINGS).get(0).remainingUses() == 9,
+                    "a recorded time zero must still enforce the cooldown");
+            tickPassiveCoating(player, stack, slot, 600L);
+            helper.assertTrue(stack.get(EnvenomDataComponents.COATINGS).get(0).remainingUses() == 8,
+                    "the next trigger is due at 600 ticks");
+        }
+        helper.succeed();
+    }
+
+    private static void tickPassiveCoating(Player player, ItemStack stack, CoatingSlot slot, long now) {
+        try {
+            var handler = com.terminalfoam.envenom.handler.CoatingEffectHandler.class;
+            var living = net.minecraft.world.entity.LivingEntity.class;
+            var method = slot == CoatingSlot.HILT
+                    ? handler.getDeclaredMethod("checkEquipment", living, InteractionHand.class, long.class)
+                    : handler.getDeclaredMethod("checkArmorSlot", living, ItemStack.class, long.class);
+            method.setAccessible(true);
+            method.invoke(null, player, slot == CoatingSlot.HILT ? InteractionHand.MAIN_HAND : stack, now);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("cannot exercise passive coating ticks", e);
+        }
+    }
+
     // ── helpers ──────────────────────────────────────────────
     private static Cow spawnCow(GameTestHelper helper, float health) {
         Cow cow = helper.spawn(EntityType.COW, 1, 2, 1);

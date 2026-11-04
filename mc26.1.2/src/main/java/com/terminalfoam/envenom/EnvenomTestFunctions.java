@@ -31,6 +31,9 @@ public final class EnvenomTestFunctions {
         register(registry, "poison_damage_high_level_is_clamped", EnvenomGameTests::poisonDamageHighLevelIsClamped);
         register(registry, "regeneration_heals_per_tick", EnvenomGameTests::regenerationHealsPerTick);
         register(registry, "regeneration_does_not_overheal", EnvenomGameTests::regenerationDoesNotOverheal);
+        register(registry, "coating_interactions_consume_click", EnvenomGameTests::coatingInteractionsConsumeClick);
+        register(registry, "coating_refill_preserves_longer_duration", EnvenomGameTests::coatingRefillPreservesLongerDuration);
+        register(registry, "fresh_passive_coatings_trigger_at_time_zero", EnvenomGameTests::freshPassiveCoatingsTriggerAtTimeZero);
         register(registry, "coating_applies_then_triggers_on_attack", EnvenomGameTests::coatingAppliesThenTriggersOnAttack);
         register(registry, "vulnerability_formula", EnvenomContentGameTests::vulnerabilityFormula);
         register(registry, "vulnerability_increases_incoming_damage", EnvenomContentGameTests::vulnerabilityIncreasesIncomingDamage);

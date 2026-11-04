@@ -85,6 +85,9 @@ public class CoatingEffectHandler {
     * 于是自动自愈 —— 这一步也依赖这里返回 true，否则永远走不到 {@code mark}。
     */
    private static boolean canTrigger(Map<String, Long> cooldowns, String key, long now, long interval) {
+      if (!cooldowns.containsKey(key)) {
+         return true;
+      }
       long last = TriggerCooldown.last(cooldowns, key);
       if (last > now) {
          return true;

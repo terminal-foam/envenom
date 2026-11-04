@@ -7,6 +7,7 @@ import com.terminalfoam.envenom.config.EnvenomConfig;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -53,6 +54,8 @@ public class CoatingApplicationHandler {
 
         if (cleaner != null) {
             event.setCanceled(true);
+            event.setCancellationResult(InteractionResult.SUCCESS);
+            if (player.level().isClientSide()) return;
             if (cleaner.is(Items.MILK_BUCKET)) {
                 removeAllCoatings(cleanTarget);
             } else if (cleaner.is(Items.HONEY_BOTTLE)) {
@@ -92,10 +95,13 @@ public class CoatingApplicationHandler {
         }
 
         event.setCanceled(true);
+        event.setCancellationResult(InteractionResult.SUCCESS);
+        // Consume the click on both sides; inventory and coating changes belong to the server.
+        if (player.level().isClientSide()) return;
         applyFromPotion(player, target, potion, slot);
 
         if (potion.is(Items.POTION)) {
-            player.setItemInHand(potionHand, new ItemStack(Items.GLASS_BOTTLE));
+            consumeOneAndReturnBottle(player, potionHand);
         } else {
             potion.shrink(1);
         }
@@ -190,7 +196,11 @@ public class CoatingApplicationHandler {
                     if (newCoating.amplifier() > existing.amplifier()) {
                         coatings.set(i, newCoating);
                     } else if (newCoating.amplifier() == existing.amplifier()) {
-                        coatings.set(i, existing.withRemainingUses(defaultUses));
+                        // Refill without discarding a longer duration (including infinite effects).
+                        int duration = existing.durationTicks() == -1 || newCoating.durationTicks() == -1
+                                ? -1 : Math.max(existing.durationTicks(), newCoating.durationTicks());
+                        coatings.set(i, new Coating(existing.effect(), existing.amplifier(), duration,
+                                defaultUses, existing.slot(), existing.lingering()));
                     }
                     merged = true;
                     break;
