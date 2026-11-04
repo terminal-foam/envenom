@@ -24,9 +24,10 @@ public final class EnvenomClient {
                 .toArray(Item[]::new);
         event.register((stack, tintIndex) -> {
             if (tintIndex != 1 || !(stack.getItem() instanceof PotionPackItem pack)) {
-                return 0xFFFFFF;
+                // Item tints are ARGB: RGB-only white has zero alpha and hides the paper layer.
+                return 0xFFFFFFFF;
             }
-            return PotionContents.getColor(pack.potion());
+            return 0xFF000000 | PotionContents.getColor(pack.potion());
         }, packs);
     }
 }
