@@ -61,10 +61,10 @@ public final class EnvenomPotions {
                     new MobEffectInstance(MobEffects.SPEED, BASE_DURATION, 5),
                     new MobEffectInstance(EnvenomEffects.VULNERABILITY, BASE_DURATION, 3)));
 
-    /** 牛奶瓶：瞬间清除全部效果。喷溅 / 滞留型由原版火药 / 龙息容器配方自动派生。 */
+    /** 无状态效果的牛奶药水标记；清除行为由 MilkHandler 和 MilkCloudMixin 执行。 */
     public static final DeferredHolder<Potion, Potion> MILK = POTIONS.register(
             "milk",
-            () -> new Potion("milk", new MobEffectInstance(EnvenomEffects.MILK, 1, 0)));
+            () -> new Potion("milk"));
 
     /** 基岩版「衰变」：凋零 II，40 秒（喷溅同长；滞留云按原版缩为 1/4，即 10 秒）。 */
     public static final DeferredHolder<Potion, Potion> DECAY = POTIONS.register(

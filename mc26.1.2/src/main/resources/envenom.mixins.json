@@ -5,6 +5,8 @@
     "mixins": [
         "BuiltinTestFunctionsMixin",
         "CakeEatMixin",
+        "MilkCloudMixin",
+        "MilkColorMixin",
         "EnderDragonHurtMixin",
         "LivingEntityInjectionMixin",
         "PoisonMixin",

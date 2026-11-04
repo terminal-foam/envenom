@@ -15,6 +15,9 @@ public final class EnvenomTestFunctions {
     }
 
     public static void bootstrap(Registry<Consumer<GameTestHelper>> registry) {
+        register(registry, "milk_has_no_status_effect", EnvenomMilkGameTests::milkHasNoStatusEffect);
+        register(registry, "milk_splash_clears_effects", EnvenomMilkGameTests::milkSplashClearsEffects);
+        register(registry, "milk_cloud_clears_repeatedly", EnvenomMilkGameTests::milkCloudClearsRepeatedly);
         register(registry, "injection_bypasses_entity_overrides", EnvenomInjectionGameTests::injectionBypassesEntityOverrides);
         register(registry, "injection_bypasses_applicable_veto", EnvenomInjectionGameTests::injectionBypassesApplicableVeto);
         register(registry, "injection_preserves_attributes_and_hidden_effects", EnvenomInjectionGameTests::injectionPreservesAttributesAndHiddenEffects);
