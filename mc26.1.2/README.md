@@ -1,13 +1,13 @@
-# Envenom 1.1.3（Minecraft 26.1.2）
+# Envenom 1.1.4（Minecraft 26.1.2）
 
-这是 Envenom 1.1.3 的 **26.1.2** 端口，独立于仓库根目录的 1.21.1 工程。
+这是 Envenom 1.1.4 的 **26.1.2** 端口，独立于仓库根目录的 1.21.1 工程。
 
 - Minecraft：26.1.2
 - NeoForge：26.1.2.122+
 - ModDevGradle：2.0.148
 - Java：25
-- 模组版本：`1.1.3`
-- jar 名：`envenom-1.1.3+mc26.1.2.jar`
+- 模组版本：`1.1.4`
+- jar 名：`envenom-1.1.4+mc26.1.2.jar`
 
 ## 构建
 
