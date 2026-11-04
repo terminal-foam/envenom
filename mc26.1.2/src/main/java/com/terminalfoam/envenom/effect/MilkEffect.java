@@ -16,7 +16,7 @@ import net.minecraft.world.entity.LivingEntity;
  */
 public class MilkEffect extends MobEffect {
     /** 牛奶白。 */
-    public static final int COLOR = 0xF2F2F2;
+    public static final int COLOR = 0xFFFFFF;
 
     public MilkEffect() {
         super(MobEffectCategory.NEUTRAL, COLOR);
