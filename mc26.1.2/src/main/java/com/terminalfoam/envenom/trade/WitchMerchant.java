@@ -153,6 +153,9 @@ public final class WitchMerchant implements Merchant {
         offer.increaseUses();
         save();
         witch.playSound(SoundEvents.WITCH_CELEBRATE, 1, 1);
+        if (customer instanceof net.minecraft.server.level.ServerPlayer player) {
+            com.terminalfoam.envenom.advancement.AdvancementHelper.award(player, "witch_trade");
+        }
     }
     @Override public void notifyTradeUpdated(ItemStack stack) { }
     @Override public int getVillagerXp() { return 0; }

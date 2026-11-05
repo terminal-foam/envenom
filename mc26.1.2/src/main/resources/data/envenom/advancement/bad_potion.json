@@ -1,0 +1,27 @@
+{
+  "parent": "envenom:root",
+  "display": {
+    "icon": {
+      "id": "minecraft:fermented_spider_eye"
+    },
+    "title": {
+      "translate": "advancements.envenom.bad_potion.title"
+    },
+    "description": {
+      "translate": "advancements.envenom.bad_potion.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "criteria": {
+    "code": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "code"
+    ]
+  ]
+}

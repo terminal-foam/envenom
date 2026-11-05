@@ -19,6 +19,9 @@ public final class EnvenomTestFunctions {
         register(registry, "instant_armor_respects_undead", EnvenomGameTests::instantArmorRespectsUndead);
         register(registry, "high_instant_coatings_do_not_overflow", EnvenomGameTests::highInstantCoatingsDoNotOverflow);
         register(registry, "poison_stays_nonlethal_with_vulnerability", EnvenomGameTests::poisonStaysNonlethalWithVulnerability);
+        register(registry, "harmful_food_overload_triggers_nausea", EnvenomGameTests::harmfulFoodOverloadTriggersNausea);
+        register(registry, "harmless_food_does_not_trigger_nausea", EnvenomGameTests::harmlessFoodDoesNotTriggerNausea);
+        register(registry, "advancement_tab_awards", EnvenomGameTests::advancementTabAwards);
 
         register(registry, "wither_intervals", EnvenomGameTests::witherIntervals);
         register(registry, "wither_damage_curve_and_type", EnvenomGameTests::witherDamageCurveAndType);

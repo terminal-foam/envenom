@@ -1,0 +1,27 @@
+{
+  "parent": "envenom:root",
+  "display": {
+    "icon": {
+      "id": "minecraft:splash_potion"
+    },
+    "title": {
+      "translate": "advancements.envenom.milk_potion.title"
+    },
+    "description": {
+      "translate": "advancements.envenom.milk_potion.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "criteria": {
+    "code": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "code"
+    ]
+  ]
+}

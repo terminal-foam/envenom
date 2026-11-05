@@ -31,6 +31,22 @@ public class EnvenomConfig {
                     )
                     .defineInRange("vulnerabilityPerLevel", 0.2D, 0.0D, 100.0D);
 
+    private static final ModConfigSpec.BooleanValue HARMFUL_FOOD_ENABLED =
+            BUILDER.comment("有害食物过量是否启用。", "Enable harmful food overload nausea.")
+                    .define("harmfulFoodEnabled", true);
+
+    private static final ModConfigSpec.IntValue HARMFUL_FOOD_WINDOW =
+            BUILDER.comment("统计窗口（tick）。", "Rolling window in ticks for harmful foods.")
+                    .defineInRange("harmfulFoodWindowTicks", 2400, 20, 72000);
+
+    private static final ModConfigSpec.IntValue HARMFUL_FOOD_THRESHOLD =
+            BUILDER.comment("窗口内吃几个有害食物触发反胃。", "Harmful foods needed within the window to trigger nausea.")
+                    .defineInRange("harmfulFoodThreshold", 7, 1, 64);
+
+    private static final ModConfigSpec.IntValue HARMFUL_FOOD_NAUSEA_TICKS =
+            BUILDER.comment("触发后反胃的持续时间（tick）。", "Nausea duration in ticks when triggered.")
+                    .defineInRange("harmfulFoodNauseaTicks", 1200, 20, 72000);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     public static int defaultUsesNormal;
@@ -38,6 +54,10 @@ public class EnvenomConfig {
     public static int defaultUsesLingering;
     /** 配置加载前也按计划书的默认 +20%/级 计算，避免事件早于配置回调。 */
     public static double vulnerabilityPerLevel = 0.2D;
+    public static boolean harmfulFoodEnabled = true;
+    public static int harmfulFoodWindowTicks = 2400;
+    public static int harmfulFoodThreshold = 7;
+    public static int harmfulFoodNauseaTicks = 1200;
 
     public static void onLoad(ModConfigEvent event) {
         if (event.getConfig().getSpec() != SPEC) return;
@@ -45,7 +65,12 @@ public class EnvenomConfig {
         defaultUsesSplash = USES_SPLASH.get();
         defaultUsesLingering = USES_LINGERING.get();
         vulnerabilityPerLevel = VULNERABILITY_PER_LEVEL.get();
-        LOGGER.info("Envenom config loaded: normal={} splash={} lingering={} vulnerabilityPerLevel={}",
-                defaultUsesNormal, defaultUsesSplash, defaultUsesLingering, vulnerabilityPerLevel);
+        harmfulFoodEnabled = HARMFUL_FOOD_ENABLED.get();
+        harmfulFoodWindowTicks = HARMFUL_FOOD_WINDOW.get();
+        harmfulFoodThreshold = HARMFUL_FOOD_THRESHOLD.get();
+        harmfulFoodNauseaTicks = HARMFUL_FOOD_NAUSEA_TICKS.get();
+        LOGGER.info("Envenom config loaded: normal={} splash={} lingering={} vulnerabilityPerLevel={} harmfulFood={}/{}/{}",
+                defaultUsesNormal, defaultUsesSplash, defaultUsesLingering, vulnerabilityPerLevel,
+                harmfulFoodEnabled, harmfulFoodThreshold, harmfulFoodNauseaTicks);
     }
 }

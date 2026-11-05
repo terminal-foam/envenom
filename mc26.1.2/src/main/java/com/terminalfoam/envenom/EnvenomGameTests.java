@@ -3,6 +3,8 @@ package com.terminalfoam.envenom;
 import com.terminalfoam.envenom.coating.Coating;
 import com.terminalfoam.envenom.coating.CoatingSlot;
 import com.terminalfoam.envenom.coating.EnvenomDataComponents;
+import com.terminalfoam.envenom.effect.EnvenomEffects;
+import com.terminalfoam.envenom.handler.HarmfulFoodHandler;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -18,6 +20,7 @@ import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.GameType;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -382,6 +385,42 @@ public final class EnvenomGameTests {
         cow.invulnerableTime = 0;
         cow.hurtServer(helper.getLevel(), cow.damageSources().magic(), 2.0F);
         helper.assertTrue(!cow.isAlive(), "unrelated magic damage must still be able to kill");
+        helper.succeed();
+    }
+
+    public static void harmfulFoodOverloadTriggersNausea(GameTestHelper helper) {
+        var player = helper.makeMockServerPlayerInLevel();
+        for (int i = 0; i < 7; i++) {
+            HarmfulFoodHandler.onFinish(new LivingEntityUseItemEvent.Finish(
+                    player, new ItemStack(Items.ROTTEN_FLESH), 0, ItemStack.EMPTY));
+        }
+        helper.assertTrue(player.hasEffect(EnvenomEffects.NAUSEA),
+                "seven harmful foods within the window must trigger nausea");
+        HarmfulFoodHandler.clear(player);
+        helper.succeed();
+    }
+
+    public static void harmlessFoodDoesNotTriggerNausea(GameTestHelper helper) {
+        var player = helper.makeMockServerPlayerInLevel();
+        for (int i = 0; i < 8; i++) {
+            HarmfulFoodHandler.onFinish(new LivingEntityUseItemEvent.Finish(
+                    player, new ItemStack(Items.APPLE), 0, ItemStack.EMPTY));
+        }
+        helper.assertTrue(!player.hasEffect(EnvenomEffects.NAUSEA),
+                "ordinary food must not count toward the harmful food overload");
+        HarmfulFoodHandler.clear(player);
+        helper.succeed();
+    }
+
+    public static void advancementTabAwards(GameTestHelper helper) {
+        var player = helper.makeMockServerPlayerInLevel();
+        var server = helper.getLevel().getServer();
+        var holder = server.getAdvancements().get(
+                net.minecraft.resources.Identifier.fromNamespaceAndPath(Envenom.MODID, "bad_potion"));
+        helper.assertTrue(holder != null, "achievement JSON must load");
+        com.terminalfoam.envenom.advancement.AdvancementHelper.award(player, "bad_potion");
+        helper.assertTrue(player.getAdvancements().getOrStartProgress(holder).isDone(),
+                "achievement must be awarded by id");
         helper.succeed();
     }
 

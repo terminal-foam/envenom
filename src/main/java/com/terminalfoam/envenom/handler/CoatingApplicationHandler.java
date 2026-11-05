@@ -168,6 +168,9 @@ public class CoatingApplicationHandler {
             defaultUses = EnvenomConfig.defaultUsesNormal;
         }
         applyCoatingsFromContents(player, target, contents, isLingering, defaultUses, slot);
+        if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+            com.terminalfoam.envenom.advancement.AdvancementHelper.award(serverPlayer, "first_coating");
+        }
     }
 
     private static void applyCoatingsFromContents(Player player, ItemStack target, PotionContents contents,
