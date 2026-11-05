@@ -24,6 +24,9 @@ public class CoatingTooltipHandler {
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event) {
         ItemStack stack = event.getItemStack();
+        if (stack.is(com.terminalfoam.envenom.item.EnvenomItems.REAGENT_SWORD.get())) {
+            event.getToolTip().add(Component.translatable("item.envenom.reagent_sword.desc").withStyle(ChatFormatting.GRAY));
+        }
         List<Coating> coatings = stack.getOrDefault(EnvenomDataComponents.COATINGS, List.of());
         if (coatings.isEmpty()) return;
 

@@ -59,6 +59,20 @@ public final class EnvenomEffectHandler {
 
     @SubscribeEvent
     public static void onIncomingDamage(LivingIncomingDamageEvent event) {
+        var source = event.getSource();
+        // Also protect targets when a mob wields the sword or another attack path skips the item hook.
+        if (source.getDirectEntity() == source.getEntity()
+                && source.getEntity() instanceof LivingEntity attacker
+                && (source.is(net.minecraft.world.damagesource.DamageTypes.PLAYER_ATTACK)
+                    || source.is(net.minecraft.world.damagesource.DamageTypes.MOB_ATTACK)
+                    || source.is(net.minecraft.world.damagesource.DamageTypes.MOB_ATTACK_NO_AGGRO))) {
+            ItemStack weapon = source.getWeaponItem();
+            if (weapon == null || weapon.isEmpty()) weapon = attacker.getMainHandItem();
+            if (weapon.is(com.terminalfoam.envenom.item.EnvenomItems.REAGENT_SWORD.get())) {
+                event.setCanceled(true);
+                return;
+            }
+        }
         LivingEntity entity = event.getEntity();
         MobEffectInstance vulnerability = entity.getEffect(EnvenomEffects.VULNERABILITY);
         if (vulnerability == null) {

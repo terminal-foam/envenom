@@ -102,5 +102,7 @@
   "item.envenom.lingering_weaving_pack": "Weaving Potion Pack (Lingering)",
   "item.envenom.lingering_oozing_pack": "Oozing Potion Pack (Lingering)",
   "item.envenom.lingering_infested_pack": "Infested Potion Pack (Lingering)",
-  "merchant.envenom.witch": "Witch Apothecary"
+  "merchant.envenom.witch": "Witch Apothecary",
+  "item.envenom.reagent_sword": "Reagent Sword",
+  "item.envenom.reagent_sword.desc": "Deals no direct attack damage; delivers coatings and Injection."
 }

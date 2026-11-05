@@ -27,6 +27,9 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 public final class EnvenomItems {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(Envenom.MODID);
 
+    public static final DeferredItem<ReagentSwordItem> REAGENT_SWORD =
+            ITEMS.registerItem("reagent_sword", ReagentSwordItem::new, new Item.Properties());
+
     private static final List<DeferredItem<PotionPackItem>> PACKS = new ArrayList<>();
 
     /** 牛奶瓶：牛奶桶 + 3 玻璃瓶 → 3 个，喝完返还玻璃瓶。 */
@@ -134,6 +137,7 @@ public final class EnvenomItems {
     public static void addToCreativeTabs(BuildCreativeModeTabContentsEvent event) {
         // 只需添加药包；三种瓶型里的自制药水由原版 CreativeModeTabs 自动遍历药水注册表添加，
         // 这里再加一遍会在创造模式栏/搜索里出现重复条目。
+        if (event.getTabKey() == CreativeModeTabs.COMBAT) event.accept(REAGENT_SWORD);
         if (event.getTabKey() == CreativeModeTabs.FOOD_AND_DRINKS) {
             event.accept(MILK_BOTTLE);
         }

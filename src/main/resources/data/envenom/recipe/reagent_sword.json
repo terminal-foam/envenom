@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " B ",
+    " W ",
+    " S "
+  ],
+  "key": {
+    "S": {
+      "item": "minecraft:stick"
+    },
+    "B": {
+      "item": "minecraft:glass_bottle"
+    },
+    "W": {
+      "item": "minecraft:wooden_sword"
+    }
+  },
+  "result": {
+    "id": "envenom:reagent_sword",
+    "count": 1
+  }
+}

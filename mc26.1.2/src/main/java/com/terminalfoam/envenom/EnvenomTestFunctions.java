@@ -15,6 +15,9 @@ public final class EnvenomTestFunctions {
     }
 
     public static void bootstrap(Registry<Consumer<GameTestHelper>> registry) {
+        register(registry, "reagent_sword_deals_no_direct_damage", EnvenomGameTests::reagentSwordDealsNoDirectDamage);
+        register(registry, "reagent_sword_delivers_injection", EnvenomGameTests::reagentSwordDeliversInjection);
+        register(registry, "reagent_sword_blocks_mob_melee", EnvenomGameTests::reagentSwordBlocksMobMelee);
         register(registry, "wither_intervals", EnvenomGameTests::witherIntervals);
         register(registry, "wither_damage_curve_and_type", EnvenomGameTests::witherDamageCurveAndType);
         register(registry, "wither_kills_and_damages_undead", EnvenomGameTests::witherKillsAndDamagesUndead);
