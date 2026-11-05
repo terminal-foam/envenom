@@ -47,6 +47,16 @@ public class EnvenomConfig {
             BUILDER.comment("触发后反胃的持续时间（tick）。", "Nausea duration in ticks when triggered.")
                     .defineInRange("harmfulFoodNauseaTicks", 1200, 20, 72000);
 
+    private static final ModConfigSpec.DoubleValue STACKING_RESISTANCE =
+            BUILDER.comment("叠层概率公式 p = L / (L + amp * 系数)，越低越容易触发。",
+                            "Stacking chance: p = L / (L + amp * factor); lower means easier.")
+                    .defineInRange("stackingResistance", 0.75D, 0.0D, 4.0D);
+
+    private static final ModConfigSpec.IntValue EFFECT_PULSE_TICKS =
+            BUILDER.comment("中毒/凋零的触发间隔（tick）。伤害按 DPS 等比缩放，默认 30。",
+                            "Poison/wither pulse interval in ticks; damage is scaled to keep DPS. Default 30.")
+                    .defineInRange("effectPulseTicks", 30, 10, 100);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     public static int defaultUsesNormal;
@@ -58,6 +68,8 @@ public class EnvenomConfig {
     public static int harmfulFoodWindowTicks = 2400;
     public static int harmfulFoodThreshold = 7;
     public static int harmfulFoodNauseaTicks = 1200;
+    public static double stackingResistance = 0.75D;
+    public static int effectPulseTicks = 30;
 
     public static void onLoad(ModConfigEvent event) {
         if (event.getConfig().getSpec() != SPEC) return;
@@ -69,8 +81,10 @@ public class EnvenomConfig {
         harmfulFoodWindowTicks = HARMFUL_FOOD_WINDOW.get();
         harmfulFoodThreshold = HARMFUL_FOOD_THRESHOLD.get();
         harmfulFoodNauseaTicks = HARMFUL_FOOD_NAUSEA_TICKS.get();
-        LOGGER.info("Envenom config loaded: normal={} splash={} lingering={} vulnerabilityPerLevel={} harmfulFood={}/{}/{}",
+        stackingResistance = STACKING_RESISTANCE.get();
+        effectPulseTicks = EFFECT_PULSE_TICKS.get();
+        LOGGER.info("Envenom config loaded: normal={} splash={} lingering={} vulnerabilityPerLevel={} harmfulFood={}/{}/{} stackingResistance={} effectPulseTicks={}",
                 defaultUsesNormal, defaultUsesSplash, defaultUsesLingering, vulnerabilityPerLevel,
-                harmfulFoodEnabled, harmfulFoodThreshold, harmfulFoodNauseaTicks);
+                harmfulFoodEnabled, harmfulFoodThreshold, harmfulFoodNauseaTicks, stackingResistance, effectPulseTicks);
     }
 }

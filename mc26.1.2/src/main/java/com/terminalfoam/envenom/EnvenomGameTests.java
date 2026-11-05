@@ -3,6 +3,7 @@ package com.terminalfoam.envenom;
 import com.terminalfoam.envenom.coating.Coating;
 import com.terminalfoam.envenom.coating.CoatingSlot;
 import com.terminalfoam.envenom.coating.EnvenomDataComponents;
+import com.terminalfoam.envenom.config.EnvenomConfig;
 import com.terminalfoam.envenom.effect.EnvenomEffects;
 import com.terminalfoam.envenom.handler.HarmfulFoodHandler;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -44,14 +45,13 @@ public final class EnvenomGameTests {
     // I/II 级是原版语义（25>>amp），III 级起由本 mod 接管为固定 10 tick。
     public static void poisonIntervals(GameTestHelper helper) {
         MobEffect poison = MobEffects.POISON.value();
-        helper.assertTrue(poison.shouldApplyEffectTickThisTick(25, 0), "poison I should tick on 25");
-        helper.assertTrue(!poison.shouldApplyEffectTickThisTick(24, 0), "poison I should not tick on 24");
-        helper.assertTrue(poison.shouldApplyEffectTickThisTick(12, 1), "poison II should tick on 12");
-        helper.assertTrue(!poison.shouldApplyEffectTickThisTick(11, 1), "poison II should not tick on 11");
-        helper.assertTrue(poison.shouldApplyEffectTickThisTick(10, 2), "poison III should tick on 10");
-        helper.assertTrue(!poison.shouldApplyEffectTickThisTick(11, 2), "poison III should not tick on 11");
-        helper.assertTrue(poison.shouldApplyEffectTickThisTick(10, 4), "poison V should tick on 10");
-        helper.assertTrue(!poison.shouldApplyEffectTickThisTick(11, 4), "poison V should not tick every tick");
+        int pulse = EnvenomConfig.effectPulseTicks;
+        for (int amplifier : new int[]{0, 1, 2, 4, 9, 255}) {
+            helper.assertTrue(poison.shouldApplyEffectTickThisTick(pulse, amplifier),
+                    "poison amp " + amplifier + " should tick on " + pulse);
+            helper.assertTrue(!poison.shouldApplyEffectTickThisTick(pulse + 1, amplifier),
+                    "poison amp " + amplifier + " should not tick on " + (pulse + 1));
+        }
         helper.succeed();
     }
 
@@ -67,18 +67,22 @@ public final class EnvenomGameTests {
     // ── 伤害/回复数值 ─────────────────────────────────────────
     public static void poisonDamageVanillaLevels(GameTestHelper helper) {
         Cow cow = spawnCow(helper, 10.0F);
+        int pulse = EnvenomConfig.effectPulseTicks;
         MobEffects.POISON.value().applyEffectTick(helper.getLevel(), cow, 0);
-        helper.assertTrue(Math.abs(cow.getHealth() - 9.0F) < EPS,
-                "poison I should deal 1.0, got " + cow.getHealth());
+        float expected = 0.04F * pulse;
+        helper.assertTrue(Math.abs(cow.getHealth() - (10.0F - expected)) < EPS,
+                "poison I should deal " + expected + " per pulse, got " + (10.0F - cow.getHealth()));
         helper.succeed();
     }
 
     public static void poisonDamageMidLevel(GameTestHelper helper) {
         Cow cow = spawnCow(helper, 10.0F);
-        // III 级（amp 2）：10 * (2-1)/6 = 1.6667
+        // III 级（amp 2）：10 * (2-1)/6，按脉冲间隔等比例放大
+        int pulse = EnvenomConfig.effectPulseTicks;
         MobEffects.POISON.value().applyEffectTick(helper.getLevel(), cow, 2);
-        helper.assertTrue(Math.abs(cow.getHealth() - (10.0F - 10.0F / 6.0F)) < EPS,
-                "poison III should deal 1.6667, got delta " + (10.0F - cow.getHealth()));
+        float expected = pulse / 6.0F;
+        helper.assertTrue(Math.abs(cow.getHealth() - (10.0F - expected)) < EPS,
+                "poison III should deal " + expected + " per pulse, got delta " + (10.0F - cow.getHealth()));
         helper.succeed();
     }
 
@@ -265,11 +269,12 @@ public final class EnvenomGameTests {
 
     public static void witherIntervals(GameTestHelper helper) {
         MobEffect wither = MobEffects.WITHER.value();
-        helper.assertTrue(wither.shouldApplyEffectTickThisTick(40, 0), "wither I retains its 40-tick interval");
-        helper.assertTrue(!wither.shouldApplyEffectTickThisTick(10, 0), "wither I is not accelerated");
-        for (int amp : new int[]{1, 2, 3, 4, 9, 20, 255}) {
-            helper.assertTrue(wither.shouldApplyEffectTickThisTick(10, amp), "higher wither ticks every ten ticks");
-            helper.assertTrue(!wither.shouldApplyEffectTickThisTick(9, amp), "higher wither must not tick early");
+        int pulse = EnvenomConfig.effectPulseTicks;
+        for (int amp : new int[]{0, 1, 2, 3, 4, 9, 20, 255}) {
+            helper.assertTrue(wither.shouldApplyEffectTickThisTick(pulse, amp),
+                    "wither amp " + amp + " should tick on " + pulse);
+            helper.assertTrue(!wither.shouldApplyEffectTickThisTick(pulse + 1, amp),
+                    "wither amp " + amp + " should not tick on " + (pulse + 1));
         }
         helper.succeed();
     }
@@ -278,7 +283,16 @@ public final class EnvenomGameTests {
         var cow = helper.spawn(EntityType.COW, 1, 2, 1);
         cow.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(200.0);
         int[] amps = {0, 1, 2, 3, 4, 9, 20};
-        float[] expected = {1.0F, 10.0F / 6.0F, 20.0F / 6.0F, 10.0F, 12.4F, 24.4F, 50.8F};
+        int pulse = EnvenomConfig.effectPulseTicks;
+        float[] expected = {
+                0.25F * pulse / 10.0F,
+                0.5F * pulse / 10.0F,
+                1.0F * pulse / 10.0F,
+                2.0F * pulse / 10.0F,
+                5.0F * pulse / 10.0F,
+                22.0F * pulse / 10.0F,
+                48.4F * pulse / 10.0F
+        };
         for (int i = 0; i < amps.length; i++) {
             cow.setHealth(200.0F);
             cow.invulnerableTime = 0;

@@ -3,6 +3,7 @@ package com.terminalfoam.envenom.handler;
 import com.terminalfoam.envenom.coating.Coating;
 import com.terminalfoam.envenom.coating.CoatingSlot;
 import com.terminalfoam.envenom.coating.EnvenomDataComponents;
+import com.terminalfoam.envenom.config.EnvenomConfig;
 import com.terminalfoam.envenom.effect.EnvenomEffects;
 import com.terminalfoam.envenom.enchantment.EnvenomEnchantments;
 import java.util.ArrayList;
@@ -285,7 +286,8 @@ public class CoatingEffectHandler {
          for (MobEffectInstance activeEffect : new ArrayList<>(livingTarget.getActiveEffects())) {
             if (activeEffect.getEffect().value().getCategory() == MobEffectCategory.HARMFUL) {
                int amp = activeEffect.getAmplifier();
-               boolean triggered = player.getRandom().nextFloat() < (float)stackingLevel / (float)(stackingLevel + amp);
+               boolean triggered = player.getRandom().nextFloat()
+                     < (float) stackingLevel / ((float) stackingLevel + amp * (float) EnvenomConfig.stackingResistance);
                int boost = triggered ? 1 + player.getRandom().nextInt(stackingLevel) : 0;
 
                // F.2：先走正门：addEffect → update 会"提级"且【保留备胎链】。

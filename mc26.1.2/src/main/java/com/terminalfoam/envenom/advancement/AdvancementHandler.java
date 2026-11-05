@@ -88,7 +88,7 @@ public final class AdvancementHandler {
             ServerPlayer player = sourcePlayer != null ? sourcePlayer
                     : (entity instanceof ServerPlayer serverPlayer ? serverPlayer : null);
             if (instance.getAmplifier() >= 9) AdvancementHelper.award(player, "poison_10");
-            if (instance.getAmplifier() >= 29) AdvancementHelper.award(player, "poison_30");
+            if (instance.getAmplifier() >= 99) AdvancementHelper.award(player, "poison_30");
         }
 
         if (sourcePlayer != null && entity instanceof Enemy && !(entity instanceof EnderDragon)
