@@ -147,12 +147,15 @@ public final class EnvenomGameTests {
         setAttackStrengthTicker(attacker, 100);
 
         Cow cow = spawnCow(helper, 20.0F);
-        helper.assertTrue(cow.hurt(helper.getLevel().damageSources().playerAttack(attacker), 4.0F),
-                "cow should take the melee hit that triggers the blade coating");
+        attacker.setPos(cow.getX(), cow.getY(), cow.getZ());
+        attacker.attack(cow);
+        helper.assertTrue(cow.getHealth() < 20.0F, "a real sword attack must trigger the blade coating");
 
         helper.runAfterDelay(3L, () -> {
             helper.assertTrue(cow.hasEffect(MobEffects.POISON),
                     "target should be poisoned by the blade coating");
+            helper.assertTrue(cow.getEffect(MobEffects.POISON).getDuration() >= coating.durationTicks() - 4,
+                    "a fully charged real attack must deliver the full coating duration");
             List<Coating> after = sword.get(EnvenomDataComponents.COATINGS);
             helper.assertTrue(after != null && after.size() == 1,
                     "coating should still exist after one hit");
@@ -256,7 +259,7 @@ public final class EnvenomGameTests {
         helper.succeed();
     }
 
-    private static void tickPassiveCoating(Player player, ItemStack stack, CoatingSlot slot, long now) {
+    private static void tickPassiveCoating(net.minecraft.world.entity.LivingEntity player, ItemStack stack, CoatingSlot slot, long now) {
         try {
             var handler = com.terminalfoam.envenom.handler.CoatingEffectHandler.class;
             var living = net.minecraft.world.entity.LivingEntity.class;
@@ -316,6 +319,89 @@ public final class EnvenomGameTests {
         var boss = helper.spawn(EntityType.WITHER, 1, 2, 3);
         helper.assertTrue(!boss.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.WITHER, 200, 1)),
                 "ordinary wither application must not bypass the wither boss's immunity");
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void infiniteCoatingsStayInfinite(GameTestHelper helper) {
+        var player = helper.makeMockServerPlayerInLevel();
+        player.setGameMode(GameType.SURVIVAL);
+        var sword = new ItemStack(Items.IRON_SWORD);
+        sword.set(EnvenomDataComponents.COATINGS,
+                List.of(new Coating(MobEffects.NIGHT_VISION, 0, -1, 10, CoatingSlot.BLADE, true)));
+        player.setItemInHand(InteractionHand.MAIN_HAND, sword);
+        var cow = spawnCow(helper, 20.0F);
+        player.setPos(cow.getX(), cow.getY(), cow.getZ());
+        setAttackStrengthTicker(player, 100);
+        player.attack(cow);
+
+        for (CoatingSlot slot : new CoatingSlot[]{CoatingSlot.HILT, CoatingSlot.ARMOR}) {
+            player.removeAllEffects();
+            var stack = new ItemStack(slot == CoatingSlot.HILT ? Items.IRON_SWORD : Items.IRON_CHESTPLATE);
+            stack.set(EnvenomDataComponents.COATINGS,
+                    List.of(new Coating(MobEffects.NIGHT_VISION, 0, -1, 10, slot, true)));
+            player.setItemInHand(InteractionHand.MAIN_HAND, stack);
+            tickPassiveCoating(player, stack, slot, 0L);
+            helper.assertTrue(player.hasEffect(MobEffects.NIGHT_VISION)
+                            && player.getEffect(MobEffects.NIGHT_VISION).isInfiniteDuration(),
+                    "lingering passive coatings must preserve infinite duration");
+            player.removeAllEffects();
+            tickPassiveCoating(player, stack, slot, 1L);
+            helper.assertTrue(player.hasEffect(MobEffects.NIGHT_VISION),
+                    "cleared infinite coatings must refill before their normal cooldown");
+        }
+        helper.runAfterDelay(3L, () -> {
+            helper.assertTrue(cow.hasEffect(MobEffects.NIGHT_VISION)
+                            && cow.getEffect(MobEffects.NIGHT_VISION).isInfiniteDuration(),
+                    "a real sword attack must preserve infinite lingering duration");
+            helper.succeed();
+        });
+    }
+
+    @GameTest(template = "empty")
+    public static void instantArmorRespectsUndead(GameTestHelper helper) {
+        var zombie = helper.spawn(EntityType.ZOMBIE, 1, 2, 1);
+        zombie.setNoAi(true);
+        var armor = new ItemStack(Items.IRON_CHESTPLATE);
+        armor.set(EnvenomDataComponents.COATINGS,
+                List.of(new Coating(MobEffects.HEAL, 0, 1, 10, CoatingSlot.ARMOR, false)));
+        tickPassiveCoating(zombie, armor, CoatingSlot.ARMOR, 0L);
+        helper.assertTrue(zombie.getHealth() < zombie.getMaxHealth(),
+                "instant health must damage even a full-health undead wearer");
+        var healingArmor = new ItemStack(Items.IRON_CHESTPLATE);
+        healingArmor.set(EnvenomDataComponents.COATINGS,
+                List.of(new Coating(MobEffects.HARM, 0, 1, 10, CoatingSlot.ARMOR, false)));
+        tickPassiveCoating(zombie, healingArmor, CoatingSlot.ARMOR, 0L);
+        helper.assertTrue(zombie.getHealth() == zombie.getMaxHealth(), "instant damage heals an undead wearer");
+        tickPassiveCoating(zombie, healingArmor, CoatingSlot.ARMOR, 10L);
+        helper.assertTrue(healingArmor.get(EnvenomDataComponents.COATINGS).get(0).remainingUses() == 9,
+                "a full-health undead wearer must not waste instant-damage coating uses");
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void highInstantCoatingsDoNotOverflow(GameTestHelper helper) {
+        var cow = spawnCow(helper, 5.0F);
+        var armor = new ItemStack(Items.IRON_CHESTPLATE);
+        armor.set(EnvenomDataComponents.COATINGS,
+                List.of(new Coating(MobEffects.HEAL, 31, 1, 10, CoatingSlot.ARMOR, false)));
+        tickPassiveCoating(cow, armor, CoatingSlot.ARMOR, 0L);
+        helper.assertTrue(cow.isAlive() && cow.getHealth() == cow.getMaxHealth(),
+                "level 32 instant healing must heal, not overflow into negative healing");
+        helper.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void poisonStaysNonlethalWithVulnerability(GameTestHelper helper) {
+        var cow = spawnCow(helper, 10.0F);
+        cow.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                com.terminalfoam.envenom.effect.EnvenomEffects.VULNERABILITY, 200, 4));
+        MobEffects.POISON.value().applyEffectTick(cow, 4);
+        helper.assertTrue(cow.isAlive() && Math.abs(cow.getHealth() - 1.0F) < EPS,
+                "vulnerability must not make high-level poison lethal");
+        cow.invulnerableTime = 0;
+        cow.hurt(cow.damageSources().magic(), 2.0F);
+        helper.assertTrue(!cow.isAlive(), "unrelated magic damage must still be able to kill");
         helper.succeed();
     }
 

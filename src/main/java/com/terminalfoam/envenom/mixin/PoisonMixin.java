@@ -1,5 +1,6 @@
 package com.terminalfoam.envenom.mixin;
 
+import com.terminalfoam.envenom.effect.PoisonDamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -48,10 +49,10 @@ public abstract class PoisonMixin {
             float cap = entity.getHealth() - 1.0F; // 不致死：最高扣到剩 1 血
             if (amplifier >= 4) {
                 float damage = Math.min(10.0F + 2.4F * (amplifier - 4), cap);
-                entity.hurt(entity.damageSources().magic(), damage);
+                entity.hurt(new PoisonDamageSource(entity.damageSources().magic().typeHolder()), damage);
             } else {
                 float damage = Math.min(10.0F * (amplifier - 1) / 6.0F, cap);
-                entity.hurt(entity.damageSources().magic(), damage);
+                entity.hurt(new PoisonDamageSource(entity.damageSources().magic().typeHolder()), damage);
             }
         }
         cir.setReturnValue(true);

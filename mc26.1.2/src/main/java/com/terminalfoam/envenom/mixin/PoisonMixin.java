@@ -1,7 +1,7 @@
 package com.terminalfoam.envenom.mixin;
 
+import com.terminalfoam.envenom.effect.PoisonDamageSource;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.common.NeoForgeMod;
@@ -55,7 +55,7 @@ public abstract class PoisonMixin {
             }
             var types = entity.damageSources().damageTypes;
             var type = types.get(NeoForgeMod.POISON_DAMAGE).orElse(types.getOrThrow(DamageTypes.MAGIC));
-            entity.hurtServer(level, new DamageSource(type), damage);
+            entity.hurtServer(level, new PoisonDamageSource(type), damage);
         }
         cir.setReturnValue(true);
     }

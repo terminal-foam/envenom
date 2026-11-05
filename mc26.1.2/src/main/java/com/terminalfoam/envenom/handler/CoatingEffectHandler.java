@@ -179,7 +179,7 @@ public class CoatingEffectHandler {
       boolean isHeal = effect.value() == MobEffects.INSTANT_HEALTH.value();
       boolean isHarm = effect.value() == MobEffects.INSTANT_DAMAGE.value();
       if (mob.isInstantenous() && (isHeal || isHarm)) {
-         float amount = 3.0F * (float)(1 << amplifier) * power;
+         float amount = CoatingMath.instantAmount(amplifier, power);
          boolean undead = target.isInvertedHealAndHarm();
          boolean dealDamage = isHeal && undead || isHarm && !undead;
 
@@ -203,7 +203,7 @@ public class CoatingEffectHandler {
          }
       } else if (multiplier > 1) {
          addEffectOrInject(
-            target, new MobEffectInstance(effect, durationTicks * multiplier, amplifier), source, forceInjection
+            target, new MobEffectInstance(effect, CoatingMath.multiplyDuration(durationTicks, multiplier), amplifier), source, forceInjection
          );
       } else {
          addEffectOrInject(target, new MobEffectInstance(effect, durationTicks, amplifier), source, forceInjection);
@@ -327,7 +327,7 @@ public class CoatingEffectHandler {
             // F-a：只有"这次施加真的会改变目标身上的东西"才扣次数。
             int multiplier = coating.lingering() ? 3 : 1;
             int scaledDuration = scaleDuration(coating.durationTicks(), power);
-            MobEffectInstance incoming = new MobEffectInstance(effect, scaledDuration * multiplier, amplifier);
+            MobEffectInstance incoming = new MobEffectInstance(effect, CoatingMath.multiplyDuration(scaledDuration, multiplier), amplifier);
             int outcome = EffectOutcome.classify(livingTarget.getEffect(effect), incoming, false);
 
             boolean worthApplying = EffectOutcome.isInstantHealOrHarm(incoming)
@@ -405,7 +405,7 @@ public class CoatingEffectHandler {
 
    /** 按强度缩放时长；下限 20 tick。 */
    private static int scaleDuration(int baseTicks, float power) {
-      return Math.max(20, Math.round(baseTicks * power));
+      return CoatingMath.scaleDuration(baseTicks, power);
    }
 
    /** 同一次挥击（同 tick）对同一目标只结算一次。 */
@@ -495,7 +495,8 @@ public class CoatingEffectHandler {
                      TriggerCooldown.mark(cooldowns, key, now);
                   }
                   if (trackable && entity.hasEffect(coating.effect())) {
-                     appliedUntil.put(key, now + (long)coating.durationTicks() * multiplier);
+                     appliedUntil.put(key, coating.durationTicks() == -1 ? Long.MAX_VALUE
+                           : now + (long) CoatingMath.multiplyDuration(coating.durationTicks(), multiplier));
                   } else {
                      appliedUntil.remove(key);
                   }
@@ -566,12 +567,14 @@ public class CoatingEffectHandler {
             // 另外：跳过条件是【永久状态】（满血就是满血、死了就是死了），所以"先判跳过再判冷却"
             // 不会因为省掉冷却记账而多付任何东西 —— 门内门外都只多两个 getter。
             if (isInstantHealHarm) {
-               if (coating.effect().value() == MobEffects.INSTANT_HEALTH.value() && entity.getHealth() >= entity.getMaxHealth()) {
+               boolean heals = (coating.effect().value() == MobEffects.INSTANT_HEALTH.value())
+                     != entity.isInvertedHealAndHarm();
+               if (heals && entity.getHealth() >= entity.getMaxHealth()) {
                   newCoatings.add(coating);
                   continue;
                }
 
-               if (coating.effect().value() == MobEffects.INSTANT_DAMAGE.value() && !entity.isAlive()) {
+               if (!entity.isAlive()) {
                   newCoatings.add(coating);
                   continue;
                }
@@ -591,7 +594,8 @@ public class CoatingEffectHandler {
                   TriggerCooldown.mark(cooldowns, key, now);
                }
                if (!instant && entity.hasEffect(coating.effect())) {
-                  appliedUntil.put(key, now + (long)coating.durationTicks() * multiplier);
+                  appliedUntil.put(key, coating.durationTicks() == -1 ? Long.MAX_VALUE
+                           : now + (long) CoatingMath.multiplyDuration(coating.durationTicks(), multiplier));
                } else {
                   appliedUntil.remove(key);
                }

@@ -69,6 +69,15 @@ public final class EnvenomEffectHandler {
         event.setAmount(scaled);
     }
 
+    /** Clamp after vulnerability and other normal damage modifiers have run. */
+    @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.LOWEST)
+    public static void onPoisonDamage(net.neoforged.neoforge.event.entity.living.LivingDamageEvent.Pre event) {
+        if (event.getSource() instanceof com.terminalfoam.envenom.effect.PoisonDamageSource) {
+            float cap = Math.max(0.0F, event.getEntity().getHealth() - 1.0F);
+            if (event.getNewDamage() > cap) event.setNewDamage(cap);
+        }
+    }
+
     private static void blockIngestion(LivingEntity entity, ItemStack stack, ICancellableEvent event) {
         if (shouldBlock(entity, stack)) {
             event.setCanceled(true);

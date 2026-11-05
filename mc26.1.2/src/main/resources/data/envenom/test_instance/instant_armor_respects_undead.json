@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:function",
+  "environment": "minecraft:default",
+  "function": "envenom:instant_armor_respects_undead",
+  "max_ticks": 200,
+  "setup_ticks": 0,
+  "required": true,
+  "structure": "envenom:empty"
+}

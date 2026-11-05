@@ -15,6 +15,11 @@ public final class EnvenomTestFunctions {
     }
 
     public static void bootstrap(Registry<Consumer<GameTestHelper>> registry) {
+        register(registry, "infinite_coatings_stay_infinite", EnvenomGameTests::infiniteCoatingsStayInfinite);
+        register(registry, "instant_armor_respects_undead", EnvenomGameTests::instantArmorRespectsUndead);
+        register(registry, "high_instant_coatings_do_not_overflow", EnvenomGameTests::highInstantCoatingsDoNotOverflow);
+        register(registry, "poison_stays_nonlethal_with_vulnerability", EnvenomGameTests::poisonStaysNonlethalWithVulnerability);
+
         register(registry, "wither_intervals", EnvenomGameTests::witherIntervals);
         register(registry, "wither_damage_curve_and_type", EnvenomGameTests::witherDamageCurveAndType);
         register(registry, "wither_kills_and_damages_undead", EnvenomGameTests::witherKillsAndDamagesUndead);

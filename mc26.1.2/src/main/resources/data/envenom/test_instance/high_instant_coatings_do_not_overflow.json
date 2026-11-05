@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:function",
+  "environment": "minecraft:default",
+  "function": "envenom:high_instant_coatings_do_not_overflow",
+  "max_ticks": 200,
+  "setup_ticks": 0,
+  "required": true,
+  "structure": "envenom:empty"
+}
