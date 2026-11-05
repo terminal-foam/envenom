@@ -1,9 +1,0 @@
-{
-  "type": "minecraft:function",
-  "environment": "minecraft:default",
-  "function": "envenom:reagent_sword_deals_no_direct_damage",
-  "max_ticks": 200,
-  "setup_ticks": 0,
-  "required": true,
-  "structure": "envenom:empty"
-}

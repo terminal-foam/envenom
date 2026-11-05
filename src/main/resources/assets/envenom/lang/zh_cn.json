@@ -102,7 +102,5 @@
   "item.envenom.lingering_weaving_pack": "盘丝药包（滞留）",
   "item.envenom.lingering_oozing_pack": "渗浆药包（滞留）",
   "item.envenom.lingering_infested_pack": "虫噬药包（滞留）",
-  "merchant.envenom.witch": "女巫药剂师",
-  "item.envenom.reagent_sword": "试剂剑",
-  "item.envenom.reagent_sword.desc": "直接攻击伤害为 0；可涂药并触发注射。"
+  "merchant.envenom.witch": "女巫药剂师"
 }

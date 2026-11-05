@@ -262,15 +262,6 @@ public class CoatingEffectHandler {
       if (weapon.isEmpty()) {
          return;
       }
-      applyBladeCoatings(player, livingTarget, weapon);
-   }
-
-   /** Zero-damage swords deliver coatings without fabricating a damage event. */
-   public static void applyReagentSwordCoatings(ServerPlayer player, LivingEntity target, ItemStack weapon) {
-      applyBladeCoatings(player, target, weapon);
-   }
-
-   private static void applyBladeCoatings(ServerPlayer player, LivingEntity livingTarget, ItemStack weapon) {
       List<Coating> coatings = weapon.getOrDefault(EnvenomDataComponents.COATINGS, List.of());
       if (coatings.stream().noneMatch(coating -> coating.slot() == CoatingSlot.BLADE)) {
          return; // 没有剑刃涂层：连附魔查询都不做

@@ -319,62 +319,6 @@ public final class EnvenomGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "empty")
-    public static void reagentSwordDealsNoDirectDamage(GameTestHelper helper) {
-        var player = helper.makeMockServerPlayerInLevel();
-        player.setGameMode(GameType.SURVIVAL);
-        var sword = new ItemStack(com.terminalfoam.envenom.item.EnvenomItems.REAGENT_SWORD.get());
-        var enchantments = helper.getLevel().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
-        sword.enchant(enchantments.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.SHARPNESS), 5);
-        sword.enchant(enchantments.getOrThrow(net.minecraft.world.item.enchantment.Enchantments.FIRE_ASPECT), 2);
-        player.setItemInHand(InteractionHand.MAIN_HAND, sword);
-        player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE).setBaseValue(100.0);
-        var cow = helper.spawn(EntityType.COW, 1, 2, 1);
-        player.setPos(cow.getX(), cow.getY(), cow.getZ());
-        float health = cow.getHealth();
-        setAttackStrengthTicker(player, 100);
-        player.attack(cow);
-        helper.assertTrue(cow.getHealth() == health, "even enchanted reagent sword attacks deal no direct damage");
-        helper.assertTrue(!cow.isOnFire(), "fire aspect must not add damage to reagent sword attacks");
-        helper.assertTrue(sword.getDamageValue() == 1, "a valid contact consumes one durability");
-        helper.assertTrue(sword.is(net.minecraft.tags.ItemTags.SWORDS), "reagent sword is tagged as a sword");
-        helper.succeed();
-    }
-
-    @GameTest(template = "empty")
-    public static void reagentSwordDeliversInjection(GameTestHelper helper) {
-        var player = helper.makeMockServerPlayerInLevel();
-        var sword = new ItemStack(com.terminalfoam.envenom.item.EnvenomItems.REAGENT_SWORD.get());
-        sword.enchant(com.terminalfoam.envenom.enchantment.EnvenomEnchantments.injection(helper.getLevel().registryAccess()), 1);
-        sword.set(EnvenomDataComponents.COATINGS,
-                List.of(new Coating(MobEffects.POISON, 0, 200, 10, CoatingSlot.BLADE, false)));
-        player.setItemInHand(InteractionHand.MAIN_HAND, sword);
-        var target = helper.spawn(EntityType.WITHER, 1, 2, 1);
-        player.setPos(target.getX(), target.getY(), target.getZ());
-        float health = target.getHealth();
-        setAttackStrengthTicker(player, 100);
-        player.attack(target);
-        helper.assertTrue(target.getHealth() == health, "coated sword must still deal no direct damage");
-        helper.assertTrue(sword.get(EnvenomDataComponents.COATINGS).get(0).remainingUses() == 9,
-                "one contact consumes one coating use");
-        helper.runAfterDelay(3L, () -> {
-            helper.assertTrue(target.hasEffect(MobEffects.POISON), "captured injection must deliver poison to an immune target");
-            helper.succeed();
-        });
-    }
-
-    @GameTest(template = "empty")
-    public static void reagentSwordBlocksMobMelee(GameTestHelper helper) {
-        var attacker = helper.spawn(EntityType.ZOMBIE, 1, 2, 1);
-        attacker.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND,
-                new ItemStack(com.terminalfoam.envenom.item.EnvenomItems.REAGENT_SWORD.get()));
-        var cow = helper.spawn(EntityType.COW, 2, 2, 1);
-        float health = cow.getHealth();
-        cow.hurt(cow.damageSources().mobAttack(attacker), 100.0F);
-        helper.assertTrue(cow.getHealth() == health, "a mob holding the sword must not deal melee damage either");
-        helper.succeed();
-    }
-
     // ── helpers ──────────────────────────────────────────────
     private static Cow spawnCow(GameTestHelper helper, float health) {
         Cow cow = helper.spawn(EntityType.COW, 1, 2, 1);
